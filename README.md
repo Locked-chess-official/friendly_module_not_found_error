@@ -2,3 +2,23 @@
 
 
 <img width="1481" height="760" alt="Windows PowerShell 2025_8_10 21_54_12" src="https://github.com/user-attachments/assets/29f81573-3784-4d44-b75f-4bd1c518727b" />
+
+## What it is doing?
+
+It is to grade the message of the `ModuleNotFoundError`. 
+
+## Usage
+
+To compile the project, it is better to define the marco below:
+
+- PYTHON_STD_PATH: The path of the python standard librarys.
+- PYTHON_SITE_PATH: The path of the python site-packages.
+- PY_EXT_PREFIX: The name that `.pyd` or `.so` need.
+
+The project now build on [nanobind](https://nanobind.readthedocs.io/en/latest/). See how to build it.
+
+# Now problem
+
+- Whether it can build on any systems
+- How to build it in cpython and how to initlizate the builtins-modules.
+- How to make it give exactly idea. If it is needed, it may need a cache to count.
