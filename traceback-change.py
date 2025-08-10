@@ -9,11 +9,13 @@ import warnings
 from contextlib import suppress
 import _colorize
 from _colorize import ANSIColors
-try:
+#=======change=========
+try:                 
     import find_all_packages
     _using_find = True
 except Exception:
     _using_find = False
+#=========end==========
 
 __all__ = ['extract_stack', 'extract_tb', 'format_exception',
            'format_exception_only', 'format_list', 'format_stack',
@@ -1096,6 +1098,7 @@ class TracebackException:
             suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
             if suggestion:
                 self._str += f". Did you mean: '{suggestion}'?"
+    #==========change===========
         elif exc_type and issubclass(exc_type, ModuleNotFoundError) and \
              (getattr(exc_value, "name", None)) is not None:
             wrong_name = getattr(exc_value, "name", None)
@@ -1103,6 +1106,7 @@ class TracebackException:
             if suggestion:
                 self._str = exc_value.msg
                 self._str += f". Did you mean: '{suggestion}'?"
+    #===========end=============
         elif exc_type and issubclass(exc_type, (NameError, AttributeError)) and \
                 getattr(exc_value, "name", None) is not None:
             wrong_name = getattr(exc_value, "name", None)
@@ -1528,6 +1532,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             if wrong_name[:1] != '_':
                 d = [x for x in d if x[:1] != '_']
         except Exception:
+#==============change============'return None'
             if not _using_find:
                 return None
             d = list(sys.stdlib_module_names) + find_all_packages.scan_dir("site-packages")
@@ -1558,6 +1563,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                                 continue
                             else:
                                 return None
+#===========end============
                         
     else:
         assert isinstance(exc_value, NameError)
@@ -1677,3 +1683,4 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
