@@ -1547,6 +1547,8 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             module_name = wrong_name_list[0]
             if module_name not in sys.modules:
                 wrong_name = module_name
+                exc_msg = f"no module named '{module_name}'"
+                exc_value.args = (exc_value.msg,)
             else:
                 if hasattr(sys.modules[module_name], '__path__') and len(wrong_name_list)>1:
                     for i in wrong_name_list[1:]:
@@ -1683,4 +1685,5 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
