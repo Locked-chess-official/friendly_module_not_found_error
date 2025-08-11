@@ -1545,6 +1545,8 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             wrong_name_list = _module_name.split(".")
             module_name = wrong_name_list[0]
             if module_name not in sys.modules:
+                if _closed_name := _calculate_closed_name(module_name, list(sys.stdlib_module_names)):
+                    return _closed_name
                 _d = _site_packages_d + find_all_packages.scan_dir(".")
                 wrong_name = module_name
                 if wrong_name not in _d:
@@ -1631,6 +1633,15 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             if has_wrong_name:
                 return f"self.{wrong_name}"
 
+#=============start==========
+    return _calculate_closed_name(wrong_name, d)
+
+def _calculate_closed_name(wrong_name, d):
+    try:
+        d.sort()
+    except:
+        pass
+#============end=============
     try:
         import _suggestions
     except ImportError:
@@ -1723,6 +1734,7 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
 
 
