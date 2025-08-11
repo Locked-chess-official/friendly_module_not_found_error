@@ -1548,9 +1548,11 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                 _d = _site_packages_d + find_all_packages.scan_dir(".")
                 wrong_name = module_name
                 if wrong_name not in _d:
+                    d = list(sys.stdlib_module_names) + _d
+                    if len(d) > _MAX_CANDIDATE_ITEMS:
+                        d = list(sys.stdlib_module_names)
                     exc_value.msg = f"no module named '{module_name}'"
-                elif len(wrong_name_list) > 1:
-                    
+                elif len(wrong_name_list) > 1:                    
                     if wrong_name in _site_packages_d:
                         path = os.path.dirname(__file__) + f"/site-packages/{wrong_name}"
                     else:
@@ -1721,6 +1723,7 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
 
 
