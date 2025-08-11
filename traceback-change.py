@@ -1535,25 +1535,50 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
 #==============change============'return None'
             if not _using_find:
                 return None
-            d = list(sys.stdlib_module_names) + find_all_packages.scan_dir("site-packages")
+            import os
+            _site_packages_d = find_all_packages.scan_dir(os.path.dirname(__file__) + "/site-packages")
+            d = list(sys.stdlib_module_names) + _site_packages_d
             if len(d) > _MAX_CANDIDATE_ITEMS:
                 d = list(sys.stdlib_module_names)
-            _module_name = exc_value.name_from if getattr(exc_value, "name_from", "") else exc_value.name
-            while True:
-                if not _module_name.startswith("."):
-                    break
-                _module_name = _module_name[1:]
+            
+            _module_name = exc_value.name
             wrong_name_list = _module_name.split(".")
             module_name = wrong_name_list[0]
             if module_name not in sys.modules:
+                _d = _site_packages_d + find_all_packages.scan_dir(".")
                 wrong_name = module_name
-                exc_msg = f"no module named '{module_name}'"
+                if wrong_name not in _d:
+                    exc_value.msg = f"no module named '{module_name}'"
+                elif len(wrong_name_list) > 1:
+                    
+                    if wrong_name in _site_packages_d:
+                        path = os.path.dirname(__file__) + f"/site-packages/{wrong_name}"
+                    else:
+                        path = wrong_name
+                    if not os.path.exists(path) or not os.path.isdir(path):
+                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
+                        return None
+                    index = 0
+                    for i in wrong_name_list[1:]:
+                        index += 1
+                        _child_modules_d = find_all_packages.scan_dir(path)
+                        original_module_name = module_name
+                        if wrong_name_list[index] not in _child_modules_d:
+                            exc_value.msg = f"module '{module_name}' has no child module '{i}'"
+                            wrong_name = i
+                            d = _child_modules_d
+                        path += f"/{i}"
+                        if not os.path.exists(path) or not os.path.isdir(path) and len(wrong_name_list) > index+1:
+                            module_name += "." + i
+                            exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[index+1]}'; '{module_name}' is not a package"
+                            return None
+                        module_name += "." + i
                 exc_value.args = (exc_value.msg,)
             else:
                 if hasattr(sys.modules[module_name], '__path__') and len(wrong_name_list)>1:
-                    _module_index = 0
+                    index = 0
                     for i in wrong_name_list[1:]:
-                        _module_index += 1
+                        index += 1
                         original_module_name = module_name
                         exc_value.msg = f"module '{module_name}' has no child module '{i}'"
                         exc_value.args = (exc_value.msg,)
@@ -1571,8 +1596,9 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                                 exc_value.args = (exc_value.msg,)
                                 return None
                 else:
-                    if len(wrong_name_list)>1:
-                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
+                    if len(wrong_name_list) > 1:
+                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'"
+                        exc_value.msg += f"; '{module_name}' is not a package"
                     exc_value.args = (exc_value.msg,)
                     return None
 #===========end============
@@ -1695,6 +1721,7 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
 
 
