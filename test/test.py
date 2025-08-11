@@ -12,7 +12,8 @@ wrong_child_module_package = local_dir + wrong_child_module_package
 def import_local_module(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
     package = importlib.util.module_from_spec(spec)
-    return spec.loader.exec_module(package)
+    spec.loader.exec_module(package)
+    return package
 
 class ExceptionTest(unittest.TestCase):
     def test_exception(self):
