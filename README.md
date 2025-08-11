@@ -26,4 +26,4 @@ The project now build on [nanobind](https://nanobind.readthedocs.io/en/latest/).
 ## Rejected suggestion
 
 - Build a cache for site-packages when install: The code runs fast, so it can find all of the packages fast. Before that finding costs, the computer has been almost broken.
-- Suggest for "pip install xxx": spell mistakes are often closely associated with homograph attacks. Syggesting for it will help it.
+- Suggest for "pip install xxx": spell mistakes are often closely associated with homograph attacks. Suggesting for it will help it.
