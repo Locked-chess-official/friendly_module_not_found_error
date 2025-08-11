@@ -1571,6 +1571,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                             exc_value.msg = f"module '{module_name}' has no child module '{i}'"
                             wrong_name = i
                             d = _child_modules_d
+                            break
                         path += f"/{i}"
                         if not os.path.exists(path) or not os.path.isdir(path) and len(wrong_name_list) > index+1:
                             module_name += "." + i
@@ -1734,6 +1735,7 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
 
 
