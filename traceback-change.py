@@ -1564,7 +1564,13 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                             if hasattr(sys.modules[module_name], '__path__'):
                                 continue
                             else:
+                                exc_value.msg += f"module '{module_name}' is not a package"
+                                exc_value.args = (exc_value.msg,)
                                 return None
+                else:
+                    exc_value.msg += f"module '{module_name}' is not a package"
+                    exc_value.args = (exc_value.msg,)
+                    return None
 #===========end============
                         
     else:
@@ -1685,6 +1691,7 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
 
 
