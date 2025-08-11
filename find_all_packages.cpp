@@ -12,6 +12,7 @@ NB_MODULE(find_all_packages, m) {
         for (int i=0;i < list->count;i++) {
             packages.push_back(list->names[i]);
         }
+        free(list);
         return packages;
     });
     m.def("scan_dir", [](std::string& path){
@@ -21,6 +22,8 @@ NB_MODULE(find_all_packages, m) {
         for (int i=0;i < list->count;i++) {
             packages.push_back(list->names[i]);
         }
+        free(list);
         return packages;
     });
+
 };
