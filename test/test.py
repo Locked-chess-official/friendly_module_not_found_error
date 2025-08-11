@@ -1,15 +1,21 @@
 import traceback
-a = ""
-b = ""
-try:
-  import wrong_module
-except:
-  a = traceback.format_exc()
+import unittest
 
-try:
-  import wrong_child_name
-except:
-  b = traceback.format_exc()
+class ExceptionTest(unittest.TestCase):
+    def test_exception(self):
+        import_error_tuple = (
+            ("import wrong_module", ModuleNotFoundError, "module 'wrong_module' has no child module 'wrong_module'"),
+            ("import wrong_child_module", ModuleNotFoundError, "module 'wrong_child_module.wrong_child_module' has no child module 'wrong_child_module'. Did you mean: 'wrong_child_modules'?")
+        )
+        for i in import_error_tuple:
+            if i:
+                self.check_message(i[0], i[1], i[2])
 
-print(a)
-print(b)
+    def check_message(self, code, exc_type, exc_msg):
+        try:
+            exec(code)
+        except exc_type:
+            self.assertIn(exc_msg, traceback.format_exc())
+
+if __name__ == '__main__':
+    unittest.main()
