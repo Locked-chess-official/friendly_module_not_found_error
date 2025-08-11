@@ -17,8 +17,13 @@ To compile the project, it is better to define the marco below:
 
 The project now build on [nanobind](https://nanobind.readthedocs.io/en/latest/). See how to build it.
 
-# Now problem
+## Now problem
 
 - Whether it can build on any systems
 - How to build it in cpython and how to initlizate the builtins-modules.
-- How to make it give exactly idea. If it is needed, it may need a cache to count.
+- How to make it give exactly idea.
+
+## Rejected suggestion
+
+- Build a cache for site-packages when install: The code runs fast, so it can find all of the packages fast. Before that finding costs, the computer has been almost broken.
+- Suggest for "pip install xxx": spell mistakes are often closely associated with homonymy attacks. Syggesting for it will help it.
