@@ -4,6 +4,8 @@ import unittest
 class ExceptionTest(unittest.TestCase):
     def test_exception(self):
         import_error_tuple = (
+            ("import ant", ModuleNotFoundError, "No module named 'ant'. Did you mean: 'ast'?"),
+            ("import multiprocessing.dumy", ModuleNotFoundError, "module 'multiprocessing' has no child module 'dumy'. Did you mean: 'dummy'?"),
             ("import wrong_module", ModuleNotFoundError, "module 'wrong_module' has no child module 'wrong_module'"),
             ("import wrong_child_module", ModuleNotFoundError, "module 'wrong_child_module.wrong_child_module' has no child module 'wrong_child_module'. Did you mean: 'wrong_child_modules'?")
         )
