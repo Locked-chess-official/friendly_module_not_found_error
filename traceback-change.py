@@ -1103,8 +1103,8 @@ class TracebackException:
              (getattr(exc_value, "name", None)) is not None:
             wrong_name = getattr(exc_value, "name", None)
             suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
+            self._str = exc_value.msg
             if suggestion:
-                self._str = exc_value.msg
                 self._str += f". Did you mean: '{suggestion}'?"
     #===========end=============
         elif exc_type and issubclass(exc_type, (NameError, AttributeError)) and \
@@ -1685,5 +1685,6 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
 
