@@ -1568,7 +1568,8 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                                 exc_value.args = (exc_value.msg,)
                                 return None
                 else:
-                    exc_value.msg += f"module '{module_name}' is not a package"
+                    if len(wrong_name_list)>1:
+                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; module '{module_name}' is not a package"
                     exc_value.args = (exc_value.msg,)
                     return None
 #===========end============
@@ -1691,6 +1692,7 @@ def _levenshtein_distance(a, b, max_cost):
             # Everything in this row is too big, so bail early.
             return max_cost + 1
     return result
+
 
 
 
