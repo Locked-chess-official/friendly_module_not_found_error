@@ -1,13 +1,26 @@
 import traceback
 import unittest
+import os
+import importlib.util
+
+wrong_module_package = "/wrong_module/__init__.py"
+wrong_child_module_package = "/wrong_child_module/__init__.py"
+local_dir = os.path.dirname(__file__)
+wrong_module_package = local_dir + wrong_module_package
+wrong_child_module_package = local_dir + wrong_child_module_package
+
+def import_local_module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    package = importlib.util.module_from_spec(spec)
+    return spec.loader.exec_module(package)
 
 class ExceptionTest(unittest.TestCase):
     def test_exception(self):
         import_error_tuple = (
             ("import ant", ModuleNotFoundError, "No module named 'ant'. Did you mean: 'ast'?"),
             ("import multiprocessing.dumy", ModuleNotFoundError, "module 'multiprocessing' has no child module 'dumy'. Did you mean: 'dummy'?"),
-            ("import wrong_module", ModuleNotFoundError, "module 'wrong_module' has no child module 'wrong_module'"),
-            ("import wrong_child_module", ModuleNotFoundError, "module 'wrong_child_module.wrong_child_module' has no child module 'wrong_child_module'. Did you mean: 'wrong_child_modules'?")
+            ("import_local_module('wrong_module', wrong_module_package)", ModuleNotFoundError, "module 'wrong_module' has no child module 'wrong_module'"),
+            ("import_local_module('wrong_child_module', wrong_child_module_package)", ModuleNotFoundError, "module 'wrong_child_module.wrong_child_module' has no child module 'wrong_child_module'. Did you mean: 'wrong_child_modules'?")
         )
         for i in import_error_tuple:
             if i:
