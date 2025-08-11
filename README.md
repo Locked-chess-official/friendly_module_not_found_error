@@ -21,7 +21,7 @@ The project now build on [nanobind](https://nanobind.readthedocs.io/en/latest/).
 
 - Whether it can build on any systems
 - How to build it in cpython and how to initlizate the builtins-modules.
-- How to make it give exactly idea.
+- <del>How to make it give exactly idea.</del>
 
 ## Rejected suggestion
 
