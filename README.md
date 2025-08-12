@@ -9,19 +9,21 @@ It is to grade the message of the `ModuleNotFoundError`.
 
 ## Usage
 
-To compile the project, it is better to define the marco below:
+<del>To compile the project, it is better to define the marco below:
 
 - PYTHON_STD_PATH: The path of the python standard librarys.
 - PYTHON_SITE_PATH: The path of the python site-packages.
 - PY_EXT_PREFIX: The name that `.pyd` or `.so` need.
 
-The project now build on [nanobind](https://nanobind.readthedocs.io/en/latest/). See how to build it.
+The project now build on [nanobind](https://nanobind.readthedocs.io/en/latest/). See how to build it.</del>
+
+Now use the python script.
 
 ## Now problem
 
-- Whether it can build on any systems
+- <del>Whether it can build on any systems
 - How to build it in cpython and how to initlizate the builtins-modules.
-- <del>How to make it give exactly idea.</del>
+- How to make it give exactly idea.</del>
 
 ## Rejected suggestion
 
