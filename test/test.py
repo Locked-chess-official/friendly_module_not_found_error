@@ -20,10 +20,10 @@ def import_local_module(name, path):
 class ExceptionTest(unittest.TestCase):
     def test_exception(self):
         import_error_tuple = (
-            ("import ant", ModuleNotFoundError, "no module named 'ant'. Did you mean: 'ast'?"),
+            ("import ant", ModuleNotFoundError, "No module named 'ant'. Did you mean: 'ast'?"),
             ("import ast.a", ModuleNotFoundError, "module 'ast' has no child module 'a'; 'ast' is not a package"),
-            ("import sus", ModuleNotFoundError, "no module named 'sus'. Did you mean: 'sys'?"),
-            ("import szs", ModuleNotFoundError, "no module named 'szs'. Did you mean: 'sys'?"),
+            ("import sus", ModuleNotFoundError, "No module named 'sus'. Did you mean: 'sys'?"),
+            ("import szs", ModuleNotFoundError, "No module named 'szs'. Did you mean: 'sys'?"),
             ("import multiprocessing.dumy", ModuleNotFoundError,
              "module 'multiprocessing' has no child module 'dumy'. Did you mean: 'dummy'?"),
             ("import_local_module('wrong_module', wrong_module_package)", ModuleNotFoundError,
