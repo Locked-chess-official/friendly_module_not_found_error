@@ -17,7 +17,7 @@ It is to grade the message of the `ModuleNotFoundError`.
 
 <del>The project now build on [nanobind](https://nanobind.readthedocs.io/en/latest/). See how to build it.</del>
 
-Now use the python script.
+Now use the python script. The "traceback-3.x-final.py" is the final result now.
 
 ## data
 
