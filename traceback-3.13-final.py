@@ -1091,6 +1091,7 @@ class TracebackException:
             suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
             if suggestion:
                 self._str += f". Did you mean: '{suggestion}'?"
+        #=======change=======
         elif exc_type and issubclass(exc_type, ModuleNotFoundError) and \
              (getattr(exc_value, "name", None)) is not None:
             wrong_name = getattr(exc_value, "name", None)
@@ -1098,6 +1099,7 @@ class TracebackException:
             self._str = exc_value.msg
             if suggestion:                
                 self._str += f". Did you mean: '{suggestion}'?"
+        #=========end========
         elif exc_type and issubclass(exc_type, (NameError, AttributeError)) and \
                 getattr(exc_value, "name", None) is not None:
             wrong_name = getattr(exc_value, "name", None)
@@ -1523,6 +1525,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             if wrong_name[:1] != '_':
                 d = [x for x in d if x[:1] != '_']
         except Exception:
+            #=======change=======
             if not isinstance(exc_value, ModuleNotFoundError):
                 return None
             scan_dir, find_all_packages = _find_all_packages()
@@ -1602,6 +1605,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                             return None
                         module_name += "." + i
                 exc_value.args = (exc_value.msg,)
+                
             else:
                 if hasattr(sys.modules[module_name], '__path__') and len(wrong_name_list)>1:
                     index = 0
@@ -1628,8 +1632,8 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                         exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
                     exc_value.args = (exc_value.msg,)
                     return None
-                
-                        
+
+           #=======end=======                     
     else:
         assert isinstance(exc_value, NameError)
         # find most recent frame
@@ -1655,7 +1659,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                 has_wrong_name = False
             if has_wrong_name:
                 return f"self.{wrong_name}"
-
+#=======change=======
     return _calculate_closed_name(wrong_name, d)
 
 def _calculate_closed_name(wrong_name, d):
@@ -1663,6 +1667,7 @@ def _calculate_closed_name(wrong_name, d):
         d.sort()
     except:
         pass
+#=======end=========
     try:
         import _suggestions
         return _suggestions._generate_suggestions(d, wrong_name)
@@ -1691,6 +1696,7 @@ def _calculate_closed_name(wrong_name, d):
                 best_distance = current_distance
         return suggestion
 
+#=======change=======
 def _find_all_packages():
     import os
     import sys
@@ -1739,6 +1745,8 @@ def _find_all_packages():
     def find_all_packages():
         return [scan_dir(i) if i and isinstance(i, str) and not i.endswith("idlelib") else [] for i in sys.path] + [sorted(sys.builtin_module_names)]
     return scan_dir, find_all_packages
+
+#=======end=========
 
 def _levenshtein_distance(a, b, max_cost):
     # A Python implementation of Python/suggestions.c:levenshtein_distance.
