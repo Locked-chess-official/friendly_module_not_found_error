@@ -19,6 +19,30 @@ It is to grade the message of the `ModuleNotFoundError`.
 
 Now use the python script.
 
+## data
+
+The test for "test.py" here:
+
+| No. | number of entries | used time(/s) | average time(/s) | result |
+|-- | -- | -- | -- | -- |
+| 1 | 5 | 0.064 | 0.013 | success |
+| 2 | 5 | 0.072 | 0.014 | success |
+| 3 | 5 | 0.052 | 0.010 | success |
+| 4 | 5 | 0.056 | 0.011 | success |
+| 5 | 5 | 0.057 | 0.011 | success |
+| 6 | 6 | 0.081 | 0.014 | success |
+| 7 | 6 | 0.062 | 0.010 | success |
+| 8 | 6 | 0.091 | 0.015 | success |
+| 9 | 6 | 0.064 | 0.011 | success |
+| 10 | 6 | 0.064 | 0.011 | success |
+
+The speed test here:
+
+| tool | function | arg | number | average time(/ms) |
+| -- | -- | -- | -- | -- |
+| timeit | find_all_packages | (no args) | 1000 | 8.567 |
+| timeit | scan_dir | path/to/site-packages | 1000 | 4.845 |
+
 ## Now problem
 
 - <del>Whether it can build on any systems</del>
