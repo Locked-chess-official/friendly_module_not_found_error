@@ -19,6 +19,8 @@ It is to grade the message of the `ModuleNotFoundError`.
 
 Now use the python script. The "traceback-3.x-final.py" is the final result now.
 
+⚠️Warning: If you want to change the traceback.py in your python environment, please save the file. If the file went wrong, you can recovery and open an issue here.
+
 ## data
 
 The test for "test.py" here:
