@@ -1586,7 +1586,10 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                             return None 
                                 
                     if not os.path.exists(path) or not os.path.isdir(path):
-                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
+                        if module_name + "." + wrong_name_list[1] not in sys.modules:
+                            exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
+                        else:
+                            exc_value.msg = f'module \'{module_name + "." + wrong_name_list[1]}\' has no child module \'{wrong_name_list[2]}\'; \'{module_name + "." + wrong_name_list[1]}\' is not a package'
                         return None
                     index = 0
                     for i in wrong_name_list[1:]:
@@ -1601,7 +1604,10 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                         path += f"/{i}"
                         if not os.path.exists(path) or not os.path.isdir(path) and len(wrong_name_list) > index + 1:
                             module_name += "." + i
-                            exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[index + 1]}'; '{module_name}' is not a package"
+                            if module_name + "." + wrong_name_list[index+1] not in sys.modules:
+                                exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[index+1]}'; '{module_name}' is not a package"
+                            else:                         
+                                exc_value.msg = f'module \'{module_name + "." + wrong_name_list[index+1]}\' has no child module \'{wrong_name_list[index+2]}\'; \'{module_name + "." + wrong_name_list[index+1]}\' is not a package'
                             return None
                         module_name += "." + i
                 exc_value.args = (exc_value.msg,)
@@ -1624,12 +1630,18 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                                 continue
                             else:
                                 if len(wrong_name_list) > index + 1:                                    
-                                    exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[index+1]}'; '{module_name}' is not a package"
+                                    if module_name + "." + wrong_name_list[index+1] not in sys.modules:
+                                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[index+1]}'; '{module_name}' is not a package"
+                                    else:                                        
+                                        exc_value.msg = f'module \'{module_name + "." + wrong_name_list[index+1]}\' has no child module \'{wrong_name_list[index+2]}\'; \'{module_name + "." + wrong_name_list[index+1]}\' is not a package'
                                 exc_value.args = (exc_value.msg,)
                                 return None
                 else:
                     if len(wrong_name_list) > 1:
-                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
+                        if module_name + "." + wrong_name_list[1] not in sys.modules:
+                            exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
+                        else:
+                            exc_value.msg = f'module \'{module_name + "." + wrong_name_list[1]}\' has no child module \'{wrong_name_list[2]}\'; \'{module_name + "." + wrong_name_list[1]}\' is not a package'
                     exc_value.args = (exc_value.msg,)
                     return None
 
