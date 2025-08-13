@@ -24,7 +24,7 @@ class ExceptionTest(unittest.TestCase):
             ("import ast.a", ModuleNotFoundError, "module 'ast' has no child module 'a'; 'ast' is not a package"),
             ("import sus", ModuleNotFoundError, "No module named 'sus'. Did you mean: 'sys'?"),
             ("import szs", ModuleNotFoundError, "No module named 'szs'. Did you mean: 'sys'?"),
-            ("import os.path.a", ModuleNotFoundError, "module 'os.path' has no child module 'a'; 'os.path' is not a package");
+            ("import os.path.a", ModuleNotFoundError, "module 'os.path' has no child module 'a'; 'os.path' is not a package"),
             ("import multiprocessing.dumy", ModuleNotFoundError,
              "module 'multiprocessing' has no child module 'dumy'. Did you mean: 'dummy'?"),
             ("import_local_module('wrong_module', wrong_module_package)", ModuleNotFoundError,
