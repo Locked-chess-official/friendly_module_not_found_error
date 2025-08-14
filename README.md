@@ -45,6 +45,22 @@ The speed test here:
 | timeit | find_all_packages | (no args) | 1000 | 8.567 |
 | timeit | scan_dir | path/to/site-packages | 1000 | 4.845 |
 
+## Effect
+
+The example:
+```
+import xxx.yyy.zzz
+```
+If "xxx" not exist, the message is:
+"No module named 'xxx'"
+If "xxx" exist but "yyy" not exist, the message is:
+"module 'xxx' has no child module 'yyy'"
+Then the message add like the text below:
+The final name will be compared to all module at that path. If at the top, it first compared with stdlib and then compared with the path in `sys.path`. Or, if the module before is not a package and the now module not exist, the message will add "module '...' is not a package". For the non-package module, it won't support for this condition: module has a child module, and it has child module. For package, it will scan the attribute "__path__" to get all possible child module to compare.
+
+The change can clearly show the specific error in import and give the near name suggestion. For example, the original is "No module named 'xxx.yyy.zzz'", we cannot get message that which step is wrong, now we can see which step is wrong:
+"No module named 'xxx'" means the top, "module 'xxx' has no child module 'yyy'" means the second, and ''module 'xxx.yyy' has no child module 'zzz'" means the third, and so on. And like `NameError` and `AttributeError`, it will suggest the possible name.
+
 ## Now problem
 
 - <del>Whether it can build on any systems</del>
