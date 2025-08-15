@@ -1091,15 +1091,14 @@ class TracebackException:
             suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
             if suggestion:
                 self._str += f". Did you mean: '{suggestion}'?"
-        #=======change=======
         elif exc_type and issubclass(exc_type, ModuleNotFoundError) and \
              (getattr(exc_value, "name", None)) is not None:
             wrong_name = getattr(exc_value, "name", None)
             suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
             self._str = exc_value.msg
+            exc_value.args = (exc_value.msg,)
             if suggestion:                
                 self._str += f". Did you mean: '{suggestion}'?"
-        #=========end========
         elif exc_type and issubclass(exc_type, (NameError, AttributeError)) and \
                 getattr(exc_value, "name", None) is not None:
             wrong_name = getattr(exc_value, "name", None)
@@ -1525,127 +1524,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             if wrong_name[:1] != '_':
                 d = [x for x in d if x[:1] != '_']
         except Exception:
-            #=======change=======
-            if not isinstance(exc_value, ModuleNotFoundError):
-                return None
-            scan_dir, find_all_packages = _find_all_packages()
-            import os
-            list_d = find_all_packages()            
-            _module_name = exc_value.name
-            wrong_name_list = _module_name.split(".")
-            module_name = wrong_name_list[0]
-            if module_name not in sys.modules:                
-                wrong_name = module_name
-                exc_value.msg = f"No module named '{module_name}'"
-                if len(wrong_name_list) == 1:                    
-                    if (_closed_name := _calculate_closed_name(module_name, sorted(sys.stdlib_module_names))):
-                        return _closed_name # stdlib first
-                    _close_name_list = []
-                    for i in list_d:
-                        module_result = _calculate_closed_name(wrong_name, i)
-                        if module_result:
-                            _close_name_list.append(module_result)
-                    _close_name_list.sort()
-                    if _close_name_list:
-                        return _close_name_list[0]    
-                    else:
-                        return None                   
-                else:                   
-                    if wrong_name in sum(list_d, []):
-                        path = ""
-                        for i in sys.path:
-                            if i and isinstance(i, str) and not i.endswith("idlelib"):
-                                if wrong_name in scan_dir(i):
-                                    path = f"{i}/{wrong_name}"
-                                    break
-                        else:
-                            if (_closed_name := _calculate_closed_name(module_name, sorted(sys.stdlib_module_names))):
-                                return _closed_name
-                            _close_name_list = []
-                            for i in list_d:
-                                module_result = _calculate_closed_name(wrong_name, i)
-                                if module_result:
-                                    _close_name_list.append(module_result)
-                            _close_name_list.sort()
-                            if _close_name_list:
-                                return _close_name_list[0]    
-                            else:
-                                return None
-                    else:
-                        if (_closed_name := _calculate_closed_name(module_name, sorted(sys.stdlib_module_names))):
-                            return _closed_name
-                        _close_name_list = []
-                        for i in list_d:
-                            module_result = _calculate_closed_name(wrong_name, i)
-                            if module_result:
-                                _close_name_list.append(module_result)
-                        _close_name_list.sort()
-                        if _close_name_list:
-                            return _close_name_list[0]    
-                        else:
-                            return None 
-                                
-                    if not os.path.exists(path) or not os.path.isdir(path):
-                        if module_name + "." + wrong_name_list[1] not in sys.modules:
-                            exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
-                        else:
-                            exc_value.msg = f'module \'{module_name + "." + wrong_name_list[1]}\' has no child module \'{wrong_name_list[2]}\'; \'{module_name + "." + wrong_name_list[1]}\' is not a package'
-                        return None
-                    index = 0
-                    for i in wrong_name_list[1:]:
-                        index += 1
-                        _child_modules_d = scan_dir(path)
-                        original_module_name = module_name
-                        if wrong_name_list[index] not in _child_modules_d:
-                            exc_value.msg = f"module '{module_name}' has no child module '{i}'"
-                            wrong_name = i
-                            d = _child_modules_d
-                            break
-                        path += f"/{i}"
-                        if not os.path.exists(path) or not os.path.isdir(path) and len(wrong_name_list) > index + 1:
-                            module_name += "." + i
-                            if module_name + "." + wrong_name_list[index+1] not in sys.modules:
-                                exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[index+1]}'; '{module_name}' is not a package"
-                            else:                         
-                                exc_value.msg = f'module \'{module_name + "." + wrong_name_list[index+1]}\' has no child module \'{wrong_name_list[index+2]}\'; \'{module_name + "." + wrong_name_list[index+1]}\' is not a package'
-                            return None
-                        module_name += "." + i
-                exc_value.args = (exc_value.msg,)
-                
-            else:
-                if hasattr(sys.modules[module_name], '__path__') and len(wrong_name_list)>1:
-                    index = 0
-                    for i in wrong_name_list[1:]:
-                        index += 1
-                        original_module_name = module_name
-                        exc_value.msg = f"module '{module_name}' has no child module '{i}'"
-                        exc_value.args = (exc_value.msg,)
-                        module_name += "." + i
-                        if module_name not in sys.modules:
-                            wrong_name = i
-                            d = scan_dir(sys.modules[original_module_name].__path__[0])
-                            break
-                        else:
-                            if hasattr(sys.modules[module_name], '__path__'):
-                                continue
-                            else:
-                                if len(wrong_name_list) > index + 1:                                    
-                                    if module_name + "." + wrong_name_list[index+1] not in sys.modules:
-                                        exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[index+1]}'; '{module_name}' is not a package"
-                                    else:                                        
-                                        exc_value.msg = f'module \'{module_name + "." + wrong_name_list[index+1]}\' has no child module \'{wrong_name_list[index+2]}\'; \'{module_name + "." + wrong_name_list[index+1]}\' is not a package'
-                                exc_value.args = (exc_value.msg,)
-                                return None
-                else:
-                    if len(wrong_name_list) > 1:
-                        if module_name + "." + wrong_name_list[1] not in sys.modules:
-                            exc_value.msg = f"module '{module_name}' has no child module '{wrong_name_list[1]}'; '{module_name}' is not a package"
-                        else:
-                            exc_value.msg = f'module \'{module_name + "." + wrong_name_list[1]}\' has no child module \'{wrong_name_list[2]}\'; \'{module_name + "." + wrong_name_list[1]}\' is not a package'
-                    exc_value.args = (exc_value.msg,)
-                    return None
-
-           #=======end=======                     
+            return _suggest_for_module(exc_value)                        
     else:
         assert isinstance(exc_value, NameError)
         # find most recent frame
@@ -1671,7 +1550,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                 has_wrong_name = False
             if has_wrong_name:
                 return f"self.{wrong_name}"
-#=======change=======
+
     return _calculate_closed_name(wrong_name, d)
 
 def _calculate_closed_name(wrong_name, d):
@@ -1679,7 +1558,6 @@ def _calculate_closed_name(wrong_name, d):
         d.sort()
     except:
         pass
-#=======end=========
     try:
         import _suggestions
         return _suggestions._generate_suggestions(d, wrong_name)
@@ -1708,10 +1586,9 @@ def _calculate_closed_name(wrong_name, d):
                 best_distance = current_distance
         return suggestion
 
-#=======change=======
-def _find_all_packages():
-    import os
+def _suggest_for_module(exc_value):
     import sys
+    import os
     from importlib import machinery
     
     def scan_dir(path):
@@ -1755,10 +1632,68 @@ def _find_all_packages():
         return sorted(result)
     
     def find_all_packages():
-        return [scan_dir(i) if i and isinstance(i, str) and not i.endswith("idlelib") else [] for i in sys.path] + [sorted(sys.builtin_module_names)]
-    return scan_dir, find_all_packages
+        return [scan_dir(i) if isinstance(i, str) and
+                not i.endswith("idlelib") else []
+                for i in sys.path] + [sorted(sys.builtin_module_names)]
 
-#=======end=========
+    def compare_top_module(module_name):
+        result = _calculate_closed_name(module_name, sorted(sys.stdlib_module_names))
+        if result:
+            return result
+        other_result_list = []
+        for i in list_d:
+            result = _calculate_closed_name(module_name, i)
+            if result:
+                other_result_list.append(result)
+        if other_result_list:
+            return other_result_list[0]
+        else:
+            return
+        
+    if not isinstance(exc_value, ModuleNotFoundError):
+        return
+    list_d = find_all_packages()            
+    _module_name = exc_value.name
+    wrong_name_list = _module_name.split(".")
+    module_name = wrong_name_list[0]
+    if module_name in sys.modules:
+        for i in wrong_name_list[1:]:
+            original_module_name = module_name
+            module_name += "." + i
+            if module_name in sys.modules:
+                continue            
+            exc_value.msg = f"module '{original_module_name}' has no child module '{i}'"
+            if hasattr(sys.modules[original_module_name], "__path__"):
+                d=[]
+                for ii in sys.modules[original_module_name].__path__:
+                    d += scan_dir(ii)
+                wrong_name = i
+                return _calculate_closed_name(wrong_name, d)
+            else:
+                exc_value.msg += f"; '{original_module_name}' is not a package"
+                return
+    else:
+        if len(wrong_name_list) == 1 or module_name not in sum(list_d, []):
+            return compare_top_module(module_name)
+        else:
+            for i in sys.path:
+                if module_name in scan_dir(i):
+                    module_path = f"{i}/{module_name}"
+                    break
+            else:
+                return compare_top_module(module_name)
+            
+            for i in wrong_name_list[1:]:
+                if not os.path.exists(module_path) or not os.path.isdir(module_path):
+                    exc_value.msg = f"module '{module_name}' has no child module '{i}'; '{module_name}' is not a package"
+                    return
+                original_module_name = module_name
+                module_name += "." + i
+                d = scan_dir(module_path)
+                if i not in scan_dir(module_path):
+                    exc_value.msg = f"module '{original_module_name}' has no child module '{i}'"
+                    return _calculate_closed_name(i, d)
+                module_path += f"/{i}"
 
 def _levenshtein_distance(a, b, max_cost):
     # A Python implementation of Python/suggestions.c:levenshtein_distance.
