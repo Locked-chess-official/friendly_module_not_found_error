@@ -1191,6 +1191,18 @@ def _suggest_for_module(exc_value):
             return other_result_list[0]
         else:
             return
+
+    def handle_wrong_module(module_name, path, child_module_list):
+        for i in child_module_list:
+            exc_value.msg = f"module '{module_name}' has no child module '{i}'"
+            if not os.path.exists(path) or not os.path.isdir(path):
+                exc_value.msg += f"; {module_name} is not a package"
+                return
+            list_d = scan_dir(path)
+            if i not in list_d:
+                return _calculate_closed_name(i, list_d)
+            path = os.path.join(path, i)
+            module_name += f".{i}"
         
     if not isinstance(exc_value, ModuleNotFoundError):
         return
@@ -1208,7 +1220,10 @@ def _suggest_for_module(exc_value):
             if hasattr(sys.modules[original_module_name], "__path__"):
                 d=[]
                 for ii in sys.modules[original_module_name].__path__:
-                    d += scan_dir(ii)
+                    list_path = scan_dir(ii)
+                    if i in list_path:
+                        return handle_wrong_module(module_name, os.path.join(ii, i), wrong_name_copy)
+                    d += list_path
                 wrong_name = i
                 return _calculate_closed_name(wrong_name, d)
             else:
@@ -1224,18 +1239,7 @@ def _suggest_for_module(exc_value):
                     break
             else:
                 return compare_top_module(module_name)
-            
-            for i in wrong_name_list[1:]:
-                if not os.path.exists(module_path) or not os.path.isdir(module_path):
-                    exc_value.msg = f"module '{module_name}' has no child module '{i}'; '{module_name}' is not a package"
-                    return
-                original_module_name = module_name
-                module_name += "." + i
-                d = scan_dir(module_path)
-                if i not in scan_dir(module_path):
-                    exc_value.msg = f"module '{original_module_name}' has no child module '{i}'"
-                    return _calculate_closed_name(i, d)
-                module_path += f"/{i}"
+            return handle_wrong_module(module_name, module_path, wrong_name_list[1:])
 
 def _levenshtein_distance(a, b, max_cost):
     # A Python implementation of Python/suggestions.c:levenshtein_distance.
