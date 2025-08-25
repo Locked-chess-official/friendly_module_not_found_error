@@ -53,7 +53,7 @@ The speed test here:
 | timeit | find_all_packages | (no args) | 1000 | 8.567 |
 | timeit | scan_dir | path/to/site-packages | 1000 | 4.845 |
 
-## Effect
+## Effect and explain
 
 The example:
 ```
