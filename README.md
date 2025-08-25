@@ -7,6 +7,14 @@
 
 It is to grade the message of the `ModuleNotFoundError`. 
 
+## Compare
+The original message is : "No module named 'xxx.yyy.zzz'".
+After its effect: 
+- If module "xxx" is not exist, it changes to "No module named 'xxx'" and give the nearly name if it exist.
+- If module "xxx" is exist but "yyy" not, it changes to "module 'xxx' has no child module 'yyy'" and give the nearly name if it exist.
+- The next is same as above.
+- If one module existed in the name is not a package, it will add the information in the message.
+
 ## Usage
 
 <del>To compile the project, it is better to define the marco below:</del>
