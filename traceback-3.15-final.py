@@ -1780,9 +1780,11 @@ def _suggest_for_module(exc_value):
     wrong_name_list = _module_name.split(".")
     module_name = wrong_name_list[0]
     if module_name in sys.modules:
+        wrong_name_copy = wrong_name_list[1:]
         for i in wrong_name_list[1:]:
             original_module_name = module_name
             module_name += "." + i
+            wrong_name_copy.pop(0)
             if module_name in sys.modules:
                 continue            
             exc_value.msg = f"module '{original_module_name}' has no child module '{i}'"
