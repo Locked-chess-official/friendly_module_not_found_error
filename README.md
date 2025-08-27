@@ -27,6 +27,14 @@ After its effect:
 
 Now use the python script. The "traceback-3.x-final.py" is the final result now.
 
+To get it easy, you can install it:
+
+```
+pip install friendly_module_not_found_error
+```
+
+The pth file will auto import the module. If it doesn't work, you can alse use `sitecustomize.py` to make it.
+
 ⚠️Warning: If you want to change the traceback.py in your python environment, please save the file. If the file went wrong, you can recovery and open an issue here.
 
 ## data
