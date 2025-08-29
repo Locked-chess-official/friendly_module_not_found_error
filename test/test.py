@@ -20,7 +20,7 @@ class DictLoader(importlib.abc.Loader):
         self.node = node
 
     def create_module(self, spec):
-        return None  # 默认用 ModuleType
+        return None  
 
     def exec_module(self, module):
         if isinstance(self.node, dict):
@@ -36,12 +36,11 @@ class DictFinder(importlib.abc.MetaPathFinder):
         self.tree = tree
 
     def find_spec(self, fullname, path, target=None):
-        # 只处理我们的根包及子模块
         if not fullname.startswith(self.name):
             return None
         parts = fullname.split(".")
         node = self.tree
-        for p in parts[1:]:  # 跳过根名
+        for p in parts[1:]:
             if isinstance(node, dict) and p in node:
                 node = node[p]
             else:
