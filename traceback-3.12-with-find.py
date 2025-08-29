@@ -1205,7 +1205,7 @@ def _suggest_for_module(exc_value):
             if result:
                 return result
 
-    def handle_hook_module(name, i):
+    def handle_hook_module(name, i, wrong_name_list):
         """
         ```
         def __find__(self, name: str=None) -> List[str]:
@@ -1214,14 +1214,13 @@ def _suggest_for_module(exc_value):
         `__find__` method should return a list about the modules without import them.
         when name is not None, it should return the submodule below it.
         """
-        for i in sys.meta_path:
+        for j in sys.meta_path:
             try:
-                func = getattr(i, "__find__", None)
+                func = getattr(j, "__find__", None)
                 if callable(func):
                     list_d = sorted(func(name))
                     if i in list_d:
-                        exc_value.msg += ", but it appear in the result from '__find__'. Is your code wrong?"
-                        return i
+                        return handle_hook_wrong_module(j, [name + '.' + i] + wrong_name_list)
                     result = _calculate_closed_name(i, list_d)
                     if result:
                         return result
@@ -1241,6 +1240,7 @@ def _suggest_for_module(exc_value):
             module_name += f".{i}"
 
     def handle_hook_wrong_module(hook, wrong_name_list):
+        nonlocal wrong_code_in_find
         module_name = wrong_name_list[0]
         for i in wrong_name_list[1:]:
             exc_value.msg = f"module '{module_name}' has no child module '{i}'"
@@ -1254,6 +1254,7 @@ def _suggest_for_module(exc_value):
                 return
             module_name += "." + i
         exc_value.msg += ", but it appear in the final result from '__find__'. Is your code wrong?"
+        wrong_code_in_find = True
         
     if not isinstance(exc_value, ModuleNotFoundError):
         return
@@ -1261,6 +1262,7 @@ def _suggest_for_module(exc_value):
     _module_name = exc_value.name
     wrong_name_list = _module_name.split(".")
     module_name = wrong_name_list[0]
+    wrong_code_in_find = False
     if module_name in sys.modules:
         wrong_name_copy = wrong_name_list[1:]
         for i in wrong_name_list[1:]:
@@ -1269,7 +1271,12 @@ def _suggest_for_module(exc_value):
             wrong_name_copy.pop(0)
             if module_name in sys.modules:
                 continue            
-            exc_value.msg = f"module '{original_module_name}' has no child module '{i}'"
+            exc_value.msg = f"module '{original_module_name}' has no child module '{i}'"            
+            result = handle_hook_module(original_module_name, i, wrong_name_copy)
+            if wrong_code_in_find:
+                return
+            if result:
+                return result
             if hasattr(sys.modules[original_module_name], "__path__"):
                 d=[]
                 for ii in sys.modules[original_module_name].__path__:
@@ -1279,12 +1286,7 @@ def _suggest_for_module(exc_value):
                     d += list_path
                 wrong_name = i
                 return _calculate_closed_name(wrong_name, d)
-            else:
-                result = handle_hook_module(original_module_name, i)
-                if result:
-                    if result == i:
-                        return
-                    return result
+            else:                
                 exc_value.msg += f"; '{original_module_name}' is not a package"
                 return
     else:
@@ -1303,10 +1305,9 @@ def _suggest_for_module(exc_value):
                 if module_name in scan_dir(i):
                     module_path = f"{i}/{module_name}"
                     break
-            else:
                 return compare_top_module(module_name)
             return handle_wrong_module(module_name, module_path, wrong_name_list[1:])
-
+        
 def _levenshtein_distance(a, b, max_cost):
     # A Python implementation of Python/suggestions.c:levenshtein_distance.
 
