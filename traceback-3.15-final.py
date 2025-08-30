@@ -1710,6 +1710,13 @@ def _suggest_for_module(exc_value):
     from importlib import machinery
     
     def scan_dir(path):
+        """
+        Return all of the packages in the path without import
+        contains：
+          - .py file
+          - directory with "__init__.py"
+          - the .pyd/so file that has right ABI
+        """
         if not os.path.isdir(path):
             return []
     
@@ -1750,7 +1757,7 @@ def _suggest_for_module(exc_value):
     def compare_top_module(module_name):
         result = _calculate_closed_name(module_name, sorted(sys.stdlib_module_names))
         if result:
-            return result  # stdlib first
+            return result
         other_result_list = []
         for i in list_d:
             result = _calculate_closed_name(module_name, i)
@@ -1811,7 +1818,6 @@ def _suggest_for_module(exc_value):
             else:
                 return compare_top_module(module_name)
             return handle_wrong_module(module_name, module_path, wrong_name_list[1:])
-
 
 def _levenshtein_distance(a, b, max_cost):
     # A Python implementation of Python/suggestions.c:levenshtein_distance.
