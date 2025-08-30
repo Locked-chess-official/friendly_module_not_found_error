@@ -1760,7 +1760,6 @@ def _suggest_for_module(exc_value):
         result = _calculate_closed_name(module_name, sorted(sys.stdlib_module_names))
         if result:
             return result
-        other_result_list = []
         for i in list_d:
             result = _calculate_closed_name(module_name, i)
             if result:
