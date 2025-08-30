@@ -1141,13 +1141,13 @@ def _suggest_for_module(exc_value):
     from importlib import machinery
     
     def scan_dir(path):
-        \"""
+        """
         Return all of the packages in the path without import
         contains：
           - .py file
           - directory with "__init__.py"
           - the .pyd/so file that has right ABI
-        \"""
+        """
         if not os.path.isdir(path):
             return []
     
