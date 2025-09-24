@@ -61,7 +61,7 @@ if minor >= 13:
         
         tb_exception.stack = traceback.StackSummary.from_list(frames)
 
-        for line in tb_exception.format():
+        for line in tb_exception.format(colorize=True):
             self.write(line)
     InteractiveColoredConsole._excepthook = _excepthook
 
