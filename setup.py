@@ -21,7 +21,7 @@ class InstallWithPth(install):
 name = "friendly_module_not_found_error"
 setup(
     name=name,
-    version="0.4.4",
+    version="0.4.5",
     author="Locked-chess-official",
     author_email="13140752715@163.com",
     description="change the message in ModuleNotFoundError",

@@ -3,9 +3,9 @@ import sys
 import traceback
 import importlib
 import builtins
-from .traceback_change import new_init
-from .runpy_change import runpy, _get_module_details
-from .idlelib_all_change import print_exception
+from .traceback_change import original_traceback_TracebackException_init
+from .runpy_change import original_runpy_get_module_details
+from .idlelib_all_change import original_idlelib_run_print_exception
 
 major, minor = sys.version_info[:2]
 
@@ -31,8 +31,6 @@ def custom_import(name, globals=None, locals=None, fromlist=(), level=0):
 
 builtins.__import__ = custom_import
 importlib._bootstrap.BuiltinImporter.__find__ = staticmethod(lambda name=None: (sorted(sys.builtin_module_names) if not name else []))
-traceback.TracebackException.__init__ = new_init
-runpy._get_module_details = _get_module_details
 original_sys_excepthook = sys.__excepthook__
 
 
@@ -53,7 +51,8 @@ if minor >= 13:
     from _pyrepl.console import InteractiveColoredConsole
     def _excepthook(self, exc_type, exc_value, exc_tb):
         tb_exception = traceback.TracebackException(
-        exc_type, exc_value, exc_tb, capture_locals=False
+            exc_type, exc_value, exc_tb, capture_locals=False,
+            limit=traceback.BUILTIN_EXCEPTION_LIMIT
         )
 
         frames = [frame for frame in tb_exception.stack
@@ -61,7 +60,7 @@ if minor >= 13:
         
         tb_exception.stack = traceback.StackSummary.from_list(frames)
 
-        for line in tb_exception.format(colorize=True):
+        for line in tb_exception.format(colorize=self.can_colorize):
             self.write(line)
     InteractiveColoredConsole._excepthook = _excepthook
 

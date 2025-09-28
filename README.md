@@ -1,6 +1,6 @@
 # friendly_module_not_found_error
 
-<img width="1481" height="760" alt="Windows PowerShell 2025_8_10 21_54_12" src="https://github.com/user-attachments/assets/29f81573-3784-4d44-b75f-4bd1c518727b" />
+<img width="800" height="430" alt="Windows PowerShell 2025_8_10 21_54_12" src="https://github.com/user-attachments/assets/29f81573-3784-4d44-b75f-4bd1c518727b" />
 
 This is a Python package that provides a custom exception class for handling module not found errors in a friendly way.
 
@@ -52,7 +52,7 @@ The final name will be compared to all module at that path. If at the top, it fi
 The change can clearly show the specific error in import and give the near name suggestion. For example, the original is "No module named 'xxx.yyy.zzz'", we cannot get message that which step is wrong, now we can see which step is wrong:
 "No module named 'xxx'" means the top, "module 'xxx' has no child module 'yyy'" means the second, and ''module 'xxx.yyy' has no child module 'zzz'" means the third, and so on. And like `NameError` and `AttributeError`, it will suggest the possible name.
 
-## require
+## Require
 
 python3.7+
 
@@ -70,7 +70,7 @@ If you have any questions or suggestions, please open an [issue](https://github.
 
 Contributions are welcome! Please submit a [pull request](https://github.com/Locked-chess-official/friendly_module_not_found_error/pulls) with your changes.
 
-## data
+## Data
 
 The test for "\_\_main\_\_.py" here:
 
@@ -93,6 +93,22 @@ The speed test here:
 | -- | -- | -- | -- | -- |
 | timeit | find_all_packages | (no args) | 1000 | 8.567 |
 | timeit | scan_dir | path/to/site-packages | 1000 | 4.845 |
+
+The function "find_all_packages" defined here:
+
+```python
+def find_all_packages() -> list[str]:
+    """
+    Find all packages in the given path.
+    If top is True, return all top packages.
+    """
+    return sorted(sum([scan_dir(i) if
+                isinstance(i, str) and not
+                i.endswith("idlelib") else []
+                for i in sys.path ], []) + 
+                list(sys.builtin_module_names))"
+
+```
 
 ## Note
 

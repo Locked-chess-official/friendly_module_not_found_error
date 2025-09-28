@@ -4,6 +4,8 @@ from .traceback_change import _suggestion_for_module
 import importlib
 import sys
 
+original_runpy_get_module_details = runpy._get_module_details
+
 def _get_module_details(mod_name, error=ImportError):
     if mod_name.startswith("."):
         raise error("Relative module names not supported")
@@ -78,3 +80,5 @@ def _get_module_details(mod_name, error=ImportError):
     if code is None:
         raise error("No code object available for %s" % mod_name)
     return mod_name, spec, code
+
+runpy._get_module_details = _get_module_details

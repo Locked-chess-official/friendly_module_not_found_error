@@ -7,8 +7,9 @@ import contextlib
 try:
     import idlelib.run
     from idlelib.run import flush_stdout, cleanup_traceback
+    original_idlelib_run_print_exception = idlelib.run.print_exception
 except:
-    get_message_lines = print_exception = None
+    get_message_lines = print_exception = original_idlelib_run_print_exception = None
 else:
     def get_message_lines(typ, exc, tb):
         "Return line composing the exception message."

@@ -2,6 +2,8 @@ import traceback
 import sys
 from .handle_path import scan_dir, find_in_path
 
+original_traceback_TracebackException_init = traceback.TracebackException.__init__
+
 major, minor = sys.version_info[:2]
 
 def _compute_suggestion_error(exc_value, tb, wrong_name):
@@ -781,3 +783,4 @@ _version_map = {
     13: _init_v13,
 }
 new_init = _version_map.get(minor, _init_v14_plus)
+traceback.TracebackException.__init__ = new_init
