@@ -3,6 +3,7 @@
 <img width="800" height="430" alt="Windows PowerShell 2025_8_10 21_54_12" src="https://github.com/user-attachments/assets/29f81573-3784-4d44-b75f-4bd1c518727b" />
 
 This is a Python package that provides a custom exception class for handling module not found errors in a friendly way.
+When you spell a module name incorrectly, the package will change the exception with a friendly message and suggestions for the possible correct module name.
 
 ## Installation
 
@@ -24,7 +25,7 @@ import ant
 ```
 
 The message raised will change to : "No module named 'ant'. Did you mean 'ast'?"
-The suggestion may be change according to the package you have installed.
+The suggestion may be change according to the packages you have installed.
 
 ```python
 import multiprocessing.dumy
@@ -47,7 +48,7 @@ If "xxx" not exist, the message is:
 If "xxx" exist but "yyy" not exist, the message is:
 "**module 'xxx' has no child module 'yyy'**"
 Then the message add like the text below:
-The final name will be compared to all module at that path. If at the top, it first compared with stdlib and then compared with the path in `sys.path`. Or, if the module before is not a package and the now module not exist, the message will add "module '...' is not a package". For the non-package module, it won't support for this condition: module has a child module, and it has child module. For package, it will scan the attribute `__path__` to get all possible child module to compare.
+The final name will be compared to all module at that path. If at the top, it first compared with stdlib and then compared with the path in `sys.path`. Or, if the module before is not a package and the now module not exist, the message will add "module '...' is not a package". For the non-package module, it won't support for this condition: module has a child module, and it has child module. For package, it will scan the attribute "\_\_path\_\_" to get all possible child module to compare.
 
 The change can clearly show the specific error in import and give the near name suggestion. For example, the original is "No module named 'xxx.yyy.zzz'", we cannot get message that which step is wrong, now we can see which step is wrong:
 "No module named 'xxx'" means the top, "module 'xxx' has no child module 'yyy'" means the second, and ''module 'xxx.yyy' has no child module 'zzz'" means the third, and so on. And like `NameError` and `AttributeError`, it will suggest the possible name.
@@ -103,8 +104,7 @@ def find_all_packages() -> list[str]:
     If top is True, return all top packages.
     """
     return sorted(sum([scan_dir(i) if
-                isinstance(i, str) and not
-                i.endswith("idlelib") else []
+                isinstance(i, str) else []
                 for i in sys.path ], []) + 
                 list(sys.builtin_module_names))"
 
@@ -115,7 +115,7 @@ def find_all_packages() -> list[str]:
 If a module that is not a package contains submodules, and those submodules also contain their own submodules, this nested module structure is not supported.
 When this situation occurs, you should reorganize the code using proper package structure. This approach violates Python's packaging best practices and should be avoided.
 
-To make your custom import hook be supported, you need to define a magic method `__find__` to return the list of all modules.
+To make your custom import hook be supported, you need to define a magic method "\_\_find\_\_" to return the list of all modules.
 For example:
 
 ```python
@@ -129,13 +129,16 @@ class MyImportHook:
         return []
 ```
 
-The `__find__` method should return a list of all modules that are available to the import hook without import them.
+The "\_\_find\_\_" method should return a list of all modules that are available to the import hook without import them.
 If the "name" is provided, the method should return a list of all submodules that under the module named "name". Or it needs to return all top modules if the "name" is None.
+
+When your code raises the "ModuleNotFoundError", if there is the suggestion given by the package, you need to check it.
+Anyway, if your IDE suggests you to `pip install` the wrong name module, check it instead of following it immediately. It may be a malicious package.
 
 ## Rejected suggestion
 
 - Build a cache for site-packages when install: The code runs fast, so it can find all of the packages fast. Before that finding costs, the computer has been almost broken.
-- Suggest for "pip install xxx": spell mistakes are often closely associated with homograph attacks. Suggesting for it will help it.
+- Suggest for "pip install xxx": spelling mistakes are often closely associated with homograph attacks. Suggesting for it will help the attacker.
 
 ## Credits
 
