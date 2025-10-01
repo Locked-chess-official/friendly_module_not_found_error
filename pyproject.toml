@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"] 
+build-backend = "hatchling.build"
 
 [project]
 name = "friendly_module_not_found_error"
-version = "1.0.3"
+version = "1.0.4"
 description = "Change the message in ModuleNotFoundError"
 readme = "README.md"
 license = {text = "MIT"}
@@ -18,22 +18,13 @@ Homepage = "https://github.com/Locked-chess-official/friendly_module_not_found_e
 "Bug Reports" = "https://github.com/Locked-chess-official/friendly_module_not_found_error/issues"
 Source = "https://github.com/Locked-chess-official/friendly_module_not_found_error"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.hatch.metadata]
+packages = [{ include = "mypackage", from = "src" }]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = [
-    "friendly_module_not_found_error",
-    "friendly_module_not_found_error.*",
-    "wrong_module",
-    "wrong_module.*",
-    "wrong_child_module",
-    "wrong_child_module.*"
-]
-
-[project.entry-points."sitecustomize"]
-friendly_module_not_found_error = "friendly_module_not_found_error:entry_point"
+[tool.hatch.build.targets.wheel.hooks.autorun]
+dependencies = ["hatch-autorun"]
+template = "import friendly_module_not_found_error"
+code = "..."
 
 [project.scripts]
 testmodule = "friendly_module_not_found_error.__main__:main"
