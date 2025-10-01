@@ -40,6 +40,8 @@ def scan_dir(path, namespace_package=False, need_main_py=False):
 
         # the .pyd/so file that has right ABI
         elif os.path.isfile(full_path):
+            if need_main_py:
+                continue
             for suf in suffixes:
                 if name.endswith(suf):
                     modname = name[:-len(suf)]

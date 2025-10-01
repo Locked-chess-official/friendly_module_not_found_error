@@ -136,7 +136,11 @@ class ExceptionTest(unittest.TestCase):
     def test_custom_module_hook(self):
         import_error_tuple = (
             ("import module", ModuleNotFoundError, f"No module named 'module'. Did you mean: {module_suggestion!r}"),
-            ("import mymodule.a", ModuleNotFoundError, "module 'mymodule' has no child module 'a', but it appear in the final result from '__find__'. Is your code wrong?"),
+            ("import mymodule.a", ModuleNotFoundError, "module 'mymodule' has no child module 'a', "
+             "but it appear in the final result from 'DictFinder.__find__'. "
+             "Is the code in 'DictFinder.__find__' or 'DictFinder.find_spec' wrong "
+             "or is the wrong in the environment?"
+             ),
             ("import mymodule.submodule.b", ModuleNotFoundError, "module 'mymodule.submodule' has no child module 'b'; 'mymodule.submodule' is not a package"),
             ("import mymodule.subpackage.aa", ModuleNotFoundError, f"module 'mymodule.subpackage' has no child module 'aa'{aa_suggestion_sentence}")
         )
