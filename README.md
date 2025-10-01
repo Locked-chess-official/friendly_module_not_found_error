@@ -15,7 +15,7 @@ pip install friendly_module_not_found_error
 
 ## Usage
 
-Don't need to import the packages. The pth file is already in the site-packages folder named "friendly_module_not_found_error.pth".
+Don't need to import the packages. The pth file is already in the site-packages folder named "hatch_autorun_friendly_module_not_found_error.pth".
 Any using for the module in your programs are undocumental behavior(UB).
 
 You can use the code to test the effects of the package:
@@ -35,7 +35,7 @@ The message raised will change to : "module 'multiprocessing' has no child modul
 
 You can also run "testmodule" to test the effects of the python.
 
-If there is not "friendly_module_not_found_error.pth" in the "site-packages" folder, you can add the file to the "site-packages" folder and add the following code to the file:
+If there is not "hatch_autorun_friendly_module_not_found_error.pth" in the "site-packages" folder, you can add the file to the "site-packages" folder and add the following code to the file:
 
 ```pth
 import friendly_module_not_found_error
