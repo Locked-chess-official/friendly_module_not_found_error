@@ -40,7 +40,7 @@ def _get_module_details(mod_name, error=ImportError):
         # pkgutil previously raised ImportError
         msg = "Error while finding module specification for {!r} ({})"
         typ, val, tb = sys.exc_info()
-        message = "\n".join(get_message_lines(typ, exc, tb))
+        message = "\n".join(get_message_lines(typ, val, tb))
         if mod_name.endswith(".py"):
             msg += (f". Try using '{mod_name[:-3]}' instead of "
                     f"'{mod_name}' as the module name.")
