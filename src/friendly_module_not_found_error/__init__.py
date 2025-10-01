@@ -64,3 +64,5 @@ if minor >= 13:
             self.write(line)
     InteractiveColoredConsole._excepthook = _excepthook
 
+entry_point = lambda: None
+

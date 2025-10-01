@@ -782,5 +782,5 @@ _version_map = {
     12: _init_v12,
     13: _init_v13,
 }
-new_init = _version_map.get(minor, _init_v14_plus)
+new_init = _version_map.get(minor, _init_v14_plus if minor >= 14 else traceback.TracebackException.__init__)
 traceback.TracebackException.__init__ = new_init

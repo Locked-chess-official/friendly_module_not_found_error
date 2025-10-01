@@ -1,4 +1,1 @@
-try:
-    import friendly_module_not_found_error
-except Exception:
-    pass
+import friendly_module_not_found_error

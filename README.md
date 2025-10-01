@@ -2,7 +2,7 @@
 
 <img width="800" height="430" alt="Windows PowerShell 2025_8_10 21_54_12" src="https://github.com/user-attachments/assets/29f81573-3784-4d44-b75f-4bd1c518727b" />
 
-This is a Python package that provides a custom exception class for handling module not found errors in a friendly way.
+This is a Python package that provides the monkey patch for handling module not found errors in a friendly way.
 When you spell a module name incorrectly, the package will change the exception with a friendly message and suggestions for the possible correct module name.
 
 ## Installation
@@ -15,7 +15,7 @@ pip install friendly_module_not_found_error
 
 ## Usage
 
-Don't need to import the packages. The pth file is already in the site-packages folder.
+Don't need to import the packages. The pth file is already in the site-packages folder named "friendly_module_not_found_error.pth".
 Any using for the module in your programs are undocumental behavior(UB).
 
 You can use the code to test the effects of the package:
@@ -34,6 +34,18 @@ import multiprocessing.dumy
 The message raised will change to : "module 'multiprocessing' has no child module 'dumy'. Did you mean 'dummy'?"
 
 You can also run "testmodule" to test the effects of the python.
+
+If there is not "friendly_module_not_found_error.pth" in the "site-packages" folder, you can add the file to the "site-packages" folder and add the following code to the file:
+
+```pth
+import friendly_module_not_found_error
+```
+
+On linux (or if the ".pth" file doesn't work), you can add "sitecustomize.py" to the "site-packages" folder of the python and add the code above.
+
+When uninstall the package, you need also to remove the file above.
+
+## Example
 
 ## Effect and explain
 
@@ -131,9 +143,24 @@ class MyImportHook:
 
 The "\_\_find\_\_" method should return a list of all modules that are available to the import hook without import them.
 If the "name" is provided, the method should return a list of all submodules that under the module named "name". Or it needs to return all top modules if the "name" is None.
+The name should be the full name of the module, such as:
+
+```plaintext
+topmodule/
+    __init__.py
+    subpackage/
+        __init__.py
+        submodule/
+            __init__.py
+            nonpackage.py
+```
+
+The name of the top module is "topmodule", the name of the subpackage is "topmodule.subpackage", and the name of the submodule is "topmodule.subpackage.submodule".
+
+## Warning
 
 When your code raises the "ModuleNotFoundError", if there is the suggestion given by the package, you need to check it.
-Anyway, if your IDE suggests you to `pip install` the wrong name module, check it instead of following it immediately. It may be a malicious package.
+Anyway, if your IDE suggests you to `pip install` the wrong name module, check it instead of following it blindly. It may be a malicious package.
 
 ## Rejected suggestion
 

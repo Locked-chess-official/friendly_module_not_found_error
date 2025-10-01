@@ -4,33 +4,32 @@ import io
 import sys
 import traceback
 import contextlib
+def get_message_lines(typ, exc, tb):
+    "Return line composing the exception message."
+    if typ in (AttributeError, NameError):
+        # 3.10+ hints are not directly accessible from python (#44026).
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            sys.__excepthook__(typ, exc, tb)
+        err_list = err.getvalue().split("\n")[1:]
+
+        for i in range(len(err_list)):  # gh-135511: Get all of the message from exception(message lack if multiline in NameError and AttributeError)
+            if err_list[i].startswith(" "):
+                continue
+            else:
+                err_list = err_list[i:-1]
+                break
+        return ["\n".join(err_list) + "\n"]
+    else:
+        return traceback.format_exception_only(typ, exc)
 try:
     import idlelib.run
     from idlelib.run import flush_stdout, cleanup_traceback
     original_idlelib_run_print_exception = idlelib.run.print_exception
 except:
-    get_message_lines = print_exception = original_idlelib_run_print_exception = None
+    print_exception = original_idlelib_run_print_exception = None
 else:
-    def get_message_lines(typ, exc, tb):
-        "Return line composing the exception message."
-        if typ in (AttributeError, NameError):
-            # 3.10+ hints are not directly accessible from python (#44026).
-            err = io.StringIO()
-            with contextlib.redirect_stderr(err):
-                sys.__excepthook__(typ, exc, tb)
-            err_list = err.getvalue().split("\n")[1:]
-
-            for i in range(len(err_list)):  # gh-135511: Get all of the message from exception(message lack if multiline in NameError and AttributeError)
-                if err_list[i].startswith(" "):
-                    continue
-                else:
-                    err_list = err_list[i:-1]
-                    break
-            return ["\n".join(err_list) + "\n"]
-        else:
-            return traceback.format_exception_only(typ, exc)
-
-
+    
     def print_exception():
         import linecache
         linecache.checkcache()

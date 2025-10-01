@@ -1,6 +1,7 @@
 import runpy
 from .handle_path import scan_dir, find_in_path
 from .traceback_change import _suggestion_for_module
+from .idlelib_all_change import get_message_lines
 import importlib
 import sys
 
@@ -37,26 +38,22 @@ def _get_module_details(mod_name, error=ImportError):
         # This hack fixes an impedance mismatch between pkgutil and
         # importlib, where the latter raises other errors for cases where
         # pkgutil previously raised ImportError
-        msg = "Error while finding module specification for {!r} ({}: {})"
-        if isinstance(ex, ModuleNotFoundError) and \
-           "None in sys.modules" not in ex.msg and \
-           "is not a package" not in ex.msg:
-            suggestion = _suggestion_for_module(ex.name)
-            if suggestion:
-                ex.msg += ". Did you mean: '%s'?" % suggestion
+        msg = "Error while finding module specification for {!r} ({})"
+        typ, val, tb = sys.exc_info()
+        message = "\n".join(get_message_lines(typ, exc, tb))
         if mod_name.endswith(".py"):
             msg += (f". Try using '{mod_name[:-3]}' instead of "
                     f"'{mod_name}' as the module name.")
-        raise error(msg.format(mod_name, type(ex).__name__, ex)) from ex
+        raise error(msg.format(mod_name, message)) from ex
     if spec is None:
         parent, _, child = mod_name.rpartition(".")
         if not parent:
-            msg = "No module named '%s'" % mod_name
+            msg = "No module named %r" % mod_name
         else:
-            msg = "module '%s' has no child module '%s'" % (parent, child)
+            msg = "module %r has no child module %r" % (parent, child)
         suggestion = _suggestion_for_module(name=mod_name, mod="run_module")
         if suggestion:
-            msg += ". Did you mean: '%s'?" % suggestion
+            msg += ". Did you mean: %r?" % suggestion
         raise error(msg)
     if spec.submodule_search_locations is not None:
         if mod_name == "__main__" or mod_name.endswith(".__main__"):
