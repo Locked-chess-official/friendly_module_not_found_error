@@ -6,3 +6,4 @@ dist/*
 __pycache__/*
 .idea/*
 .pytest_cache/*
+install_in_pyenv.ps1

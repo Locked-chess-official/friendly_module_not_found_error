@@ -98,6 +98,14 @@ def _handle_module(exc_value):
         return    
     return _suggestion_for_module(exc_value.name, original_exc_value=exc_value)
 
+def add_note(exc_value, note):
+    if minor >= 11:
+        exc_value.add_note(note)
+    else:
+        if not isinstance(getattr(exc_value, "__notes__", None), list):
+            exc_value.__notes__ = []
+        exc_value.__notes__.append(note)
+
 def _suggestion_for_module(name, mod="normal", original_exc_value=None):
     
     kwargs = {}
@@ -123,26 +131,28 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
             if callable(func):
                 list_d = func(parent)
                 if child in list_d:
-                    if original_exc_value and minor >= 11:
-                        original_exc_value.add_note(f"The child name found in '{iname}.__find__' "
-                                                    "but it cannot imported by it. "
-                                                    "Please check it. \n"
-                                                    f"{iname!r} is in module {imodule!r}")
+                    if original_exc_value:
+                        add_note(original_exc_value,
+                                 f"The child name found in '{iname}.__find__' "
+                                 "but it cannot imported by it. "
+                                 "Please check it. \n"
+                                 f"{iname!r} is in module {imodule!r}")
                     return child
                 if list_d:
                     suggest_list.append(list_d)
         except:
-            if original_exc_value and minor >= 11:
+            if original_exc_value:
                 new_type, new_value, new_tb = sys.exc_info()
                 if issubclass(new_type, ImportError):
-                    original_exc_value.add_note(f"ImportError in {iname}.__find__: "
-                                                "don't import any module in "
-                                                "method '__find__'")
+                    add_note(original_exc_value,
+                             f"ImportError in {iname}.__find__: "
+                             "don't import any module in "
+                             "method '__find__'")
                     continue
                 err = io.StringIO()
                 with contextlib.redirect_stderr(err):
                     sys.__excepthook__(new_type, new_value, new_tb)
-                original_exc_value.add_note(f"\nException ignored in {iname}.__find__:\n\n"
+                add_note(original_exc_value, f"\nException ignored in {iname}.__find__:\n\n"
                                             + err.getvalue())
                 
     if not parent:
@@ -449,6 +459,7 @@ def _init_v7(self, exc_type, exc_value, exc_traceback, *,
 
     if not _handle_syntax_error_fields_common(self, exc_type, exc_value):
         handle_except(self, exc_type, exc_value, exc_traceback)
+    self.__notes__ = getattr(exc_value, "__notes__", None)
     if lookup_lines:
         self._load_lines()
     remove_stack(self)
@@ -497,6 +508,7 @@ def _init_v8(self, exc_type, exc_value, exc_traceback, *,
 
     if not _handle_syntax_error_fields_common(self, exc_type, exc_value):
         handle_except(self, exc_type, exc_value, exc_traceback)
+    self.__notes__ = getattr(exc_value, "__notes__", None)
     if lookup_lines:
         self._load_lines()
     remove_stack(self)
@@ -549,6 +561,7 @@ def _init_v9(self, exc_type, exc_value, exc_traceback, *,
 
     if not _handle_syntax_error_fields_common(self, exc_type, exc_value):
         handle_except(self, exc_type, exc_value, exc_traceback)
+    self.__notes__ = getattr(exc_value, "__notes__", None)
     if lookup_lines:
         self._load_lines()
     remove_stack(self)
@@ -568,6 +581,9 @@ def _init_v10(self, exc_type, exc_value, exc_traceback, *,
 
     if not _handle_syntax_error_fields_common(self, exc_type, exc_value):
         handle_except(self, exc_type, exc_value, exc_traceback)
+
+    self.__notes__ = getattr(exc_value, "__notes__", None)
+    
     if lookup_lines:
         self._load_lines()
 
@@ -931,3 +947,21 @@ _version_map = {
 }
 new_init = _version_map.get(minor, _init_v14_plus if minor >= 14 else traceback.TracebackException.__init__)
 traceback.TracebackException.__init__ = new_init
+
+if minor <= 10:
+    original_TracebackException_format_exception_only = traceback.TracebackException.format_exception_only
+    import collections.abc
+    def new_format_exception_ony(self, *, _depth=0):
+        yield from original_TracebackException_format_exception_only(self)        
+        if hasattr(self, '__notes__'):
+            indent = 3 * _depth * ' '
+            if (
+                isinstance(self.__notes__, collections.abc.Sequence)
+                and not isinstance(self.__notes__, (str, bytes))
+            ):
+                for note in self.__notes__:
+                    note = _safe_string(note, 'note')
+                    yield from [indent + l + '\n' for l in note.split('\n')]
+            elif self.__notes__ is not None:
+                yield indent + "{}\n".format(_safe_string(self.__notes__, '__notes__', func=repr))
+    traceback.TracebackException.format_exception_only = new_format_exception_ony
