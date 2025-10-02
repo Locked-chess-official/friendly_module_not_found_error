@@ -108,6 +108,19 @@ def add_note(exc_value, note):
             exc_value.__notes__ = []
         exc_value.__notes__.append(note)
 
+def _import_error_tb(err, seen=None):
+    if not isinstance(seen, set):
+        seen = set()
+    if not err or err in seen:
+        return seen
+    if isinstance(err, ImportError):
+        seen.add(err)
+    if err.__cause__ is not None:
+        _import_error_tb(err.__cause__, seen)
+    if err.__context__ is not None:
+        _import_error_tb(err.__context__, seen)
+    return seen
+
 def _suggestion_for_module(name, mod="normal", original_exc_value=None):
     
     kwargs = {}
@@ -145,17 +158,15 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
         except:
             if original_exc_value:
                 new_type, new_value, new_tb = sys.exc_info()
-                if issubclass(new_type, ImportError):
-                    add_note(original_exc_value,
-                             f"\nImportError in '{iname}.__find__' module {imodule!r}: "
-                             "don't import any module in "
-                             "method '__find__'")
+                new_value.__context__ = None # avoid to analyse the original ModuleNotFoundError
+                importerror_set = _import_error_tb(new_value)
+                if importerror_set:
+                    add_note(original_exc_value, f"\nImportError found in '{iname}.__find' module {imodule!r}:\n"
+                             "Don't import any module in the method '__find__'")
                     continue
-                err = io.StringIO()
-                with contextlib.redirect_stderr(err):
-                    sys.__excepthook__(new_type, new_value, new_tb)
-                add_note(original_exc_value, f"\nException ignored in {iname}.__find__ module {imodule!r}:\n"
-                                            + err.getvalue())
+                tb_exception = traceback.TracebackException(new_type, new_value, new_tb, chain=False)
+                add_note(original_exc_value, f"\nException ignored in '{iname}.__find__' module {imodule!r}:\n"
+                                            + "".join(tb_exception.format()))
                 
     if not parent:
         for paths in sys.path:
@@ -332,7 +343,7 @@ def handle_except(self, exc_type, exc_value, exc_traceback):
         suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
         if suggestion == child:
             wrong_hook = _find_wrong_hook(wrong_name)            
-            if wrong_hook:
+            if wrong_hook is not None:
                 if isinstance(wrong_hook, type):
                     wrong_hook_name = wrong_hook.__name__
                 else:
