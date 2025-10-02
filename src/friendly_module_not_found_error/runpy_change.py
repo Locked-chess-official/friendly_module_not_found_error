@@ -1,5 +1,4 @@
 import runpy
-from .handle_path import scan_dir, find_in_path
 from .traceback_change import _suggestion_for_module
 from .idlelib_all_change import get_message_lines
 import importlib

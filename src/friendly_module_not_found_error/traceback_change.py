@@ -97,7 +97,7 @@ except:
 
 def _handle_module(exc_value):
     if not isinstance(exc_value, ModuleNotFoundError):
-        return    
+        return None
     return _suggestion_for_module(exc_value.name, original_exc_value=exc_value)
 
 def add_note(exc_value, note):
@@ -147,14 +147,14 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
                 new_type, new_value, new_tb = sys.exc_info()
                 if issubclass(new_type, ImportError):
                     add_note(original_exc_value,
-                             f"ImportError in {iname}.__find__: "
+                             f"\nImportError in '{iname}.__find__' module {imodule!r}: "
                              "don't import any module in "
                              "method '__find__'")
                     continue
                 err = io.StringIO()
                 with contextlib.redirect_stderr(err):
                     sys.__excepthook__(new_type, new_value, new_tb)
-                add_note(original_exc_value, f"\nException ignored in {iname}.__find__:\n\n"
+                add_note(original_exc_value, f"\nException ignored in {iname}.__find__ module {imodule!r}:\n"
                                             + err.getvalue())
                 
     if not parent:
@@ -254,7 +254,7 @@ except Exception:
 
 def _calculate_closed_name(wrong_name, d):
     try:
-        import _suggestions
+        import _suggestions #type: ignore
     except ImportError:
         pass
     else:

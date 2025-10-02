@@ -1,1 +1,1 @@
-from .wrong_child_module import *
+from .wrong_child_module import * #type: ignore

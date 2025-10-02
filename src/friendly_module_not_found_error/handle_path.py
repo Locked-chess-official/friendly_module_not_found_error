@@ -4,7 +4,7 @@ from importlib import machinery
 
 def scan_dir(path, namespace_package=False, need_main_py=False):
     """
-    Return all of the packages in the path without import
+    Return all the packages in the path without import
     contains：
       - .py file
       - directory with "__init__.py"

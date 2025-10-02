@@ -23,7 +23,7 @@ importlib._bootstrap.BuiltinImporter.__find__ = staticmethod(
     )
 original_sys_excepthook = sys.__excepthook__
 
-def excepthook(exc_type, exc_value, exc_tb):
+def _excepthook(exc_type, exc_value, exc_tb):
     
     tb_exception = traceback.TracebackException(
         exc_type, exc_value, exc_tb, capture_locals=False
@@ -34,7 +34,7 @@ def excepthook(exc_type, exc_value, exc_tb):
     else:
         for line in tb_exception.format(colorize=True):
             sys.stderr.write(line)
-sys.excepthook = sys.__excepthook__ = excepthook
+sys.excepthook = sys.__excepthook__ = _excepthook
 
 def unchange():
     traceback.TracebackException.__init__ = original_traceback_TracebackException_init
@@ -52,5 +52,5 @@ def rechange():
     if _has_idlelib:
         idlelib.run.print_exception = print_exception
     importlib._bootstrap._find_and_load_unlocked = _find_and_load_unlocked
-    sys.excepthook = sys.__excepthook__ = excepthook
+    sys.excepthook = sys.__excepthook__ = _excepthook
 

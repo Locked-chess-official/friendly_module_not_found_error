@@ -1,10 +1,11 @@
 # To make the exception message valid on idle
-import io
 import sys
 import traceback
-import contextlib
+
+
+
 def get_message_lines(typ, exc, tb):
-    "Return line composing the exception message."
+    """Return line composing the exception message."""
     if typ in (AttributeError, NameError):
         tb_exception = traceback.TracebackException(
             typ, exc, tb, capture_locals=False
@@ -12,14 +13,15 @@ def get_message_lines(typ, exc, tb):
         return list(tb_exception.format_exception_only())
     else:
         return traceback.format_exception_only(typ, exc)
+
+    
 try:
     import idlelib.run
     from idlelib.run import flush_stdout, cleanup_traceback
     original_idlelib_run_print_exception = idlelib.run.print_exception
 except:
     print_exception = original_idlelib_run_print_exception = None
-else:
-    
+else:    
     def print_exception():
         import linecache
         linecache.checkcache()
