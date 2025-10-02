@@ -2,6 +2,8 @@ import traceback
 import sys
 from .handle_path import scan_dir, find_in_path
 import contextlib
+import io
+import itertools
 
 original_traceback_TracebackException_init = traceback.TracebackException.__init__
 
