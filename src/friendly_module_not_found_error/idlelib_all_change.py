@@ -1,4 +1,3 @@
-# gh-135511
 # To make the exception message valid on idle
 import io
 import sys
@@ -7,19 +6,10 @@ import contextlib
 def get_message_lines(typ, exc, tb):
     "Return line composing the exception message."
     if typ in (AttributeError, NameError):
-        # 3.10+ hints are not directly accessible from python (#44026).
-        err = io.StringIO()
-        with contextlib.redirect_stderr(err):
-            sys.__excepthook__(typ, exc, tb)
-        err_list = err.getvalue().split("\n")[1:]
-
-        for i in range(len(err_list)):  # gh-135511: Get all of the message from exception(message lack if multiline in NameError and AttributeError)
-            if err_list[i].startswith(" "):
-                continue
-            else:
-                err_list = err_list[i:-1]
-                break
-        return ["\n".join(err_list) + "\n"]
+        tb_exception = traceback.TracebackException(
+            typ, exc, tb, capture_locals=False
+        )
+        return list(tb_exception.format_exception_only())
     else:
         return traceback.format_exception_only(typ, exc)
 try:

@@ -15,9 +15,6 @@ pip install friendly_module_not_found_error
 
 ## Usage
 
-Don't need to import the packages. The pth file is already in the site-packages folder named "hatch_autorun_friendly_module_not_found_error.pth".
-Any using for the module in your programs are undocumental behavior(UB).
-
 You can use the code to test the effects of the package:
 
 ```python
@@ -44,6 +41,11 @@ import friendly_module_not_found_error
 On linux (or if the ".pth" file doesn't work), you can add "sitecustomize.py" to the "site-packages" folder of the python and add the code above.
 
 When uninstall the package, you need also to remove the file above.
+
+In version 1.0.6, it provide two api:
+
+- friendly_module_not_found_error.unchange(): restore the original behavior of the module not found error.
+- friendly_module_not_found_error.rechange(): change the behavior of the module not found error to the friendly way.
 
 ## Example
 
@@ -165,7 +167,7 @@ Anyway, if your IDE suggests you to `pip install` the wrong name module, check i
 ## Rejected suggestion
 
 - Build a cache for site-packages when install: The code runs fast, so it can find all of the packages fast. Before that finding costs, the computer has been almost broken.
-- Suggest for "pip install xxx": spelling mistakes are often closely associated with homograph attacks. Suggesting for it will help the attacker.
+- Suggest for "pip install xxx": spelling mistakes are often closely associated with homograph attacks and typosquatting attacks. Suggesting for it will help the attacker.
 
 ## Credits
 

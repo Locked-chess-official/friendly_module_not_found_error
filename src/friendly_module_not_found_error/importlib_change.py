@@ -142,4 +142,6 @@ final_dict = {
 
 if minor >= 7:
     _find_and_load_unlocked = final_dict.get(minor, _find_and_load_unlocked_v11)
-    importlib._bootstrap._find_and_load_unlocked = _find_and_load_unlocked
+else:
+    _find_and_load_unlocked = importlib._bootstrap._find_and_load_unlocked
+importlib._bootstrap._find_and_load_unlocked = _find_and_load_unlocked

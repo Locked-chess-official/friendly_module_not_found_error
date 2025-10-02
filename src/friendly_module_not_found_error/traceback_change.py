@@ -949,9 +949,9 @@ _version_map = {
 }
 new_init = _version_map.get(minor, _init_v14_plus if minor >= 14 else traceback.TracebackException.__init__)
 traceback.TracebackException.__init__ = new_init
+original_TracebackException_format_exception_only = traceback.TracebackException.format_exception_only
 
 if minor <= 10:
-    original_TracebackException_format_exception_only = traceback.TracebackException.format_exception_only
     import collections.abc
     def new_format_exception_ony(self, *, _depth=0):
         yield from original_TracebackException_format_exception_only(self)        
@@ -967,3 +967,5 @@ if minor <= 10:
             elif self.__notes__ is not None:
                 yield indent + "{}\n".format(_safe_string(self.__notes__, '__notes__', func=repr))
     traceback.TracebackException.format_exception_only = new_format_exception_ony
+else:
+    new_format_exception_ony = traceback.TracebackException.format_exception_only
