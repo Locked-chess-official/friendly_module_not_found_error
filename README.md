@@ -159,6 +159,10 @@ topmodule/
 
 The name of the top module is "topmodule", the name of the subpackage is "topmodule.subpackage", and the name of the submodule is "topmodule.subpackage.submodule".
 
+If exception raised in the method "\_\_find\_\_", the exception will be ignored and the default behavior will be used.
+If the all of the exceptions in the exception chain ("\_\_cause\_\_", "\_\_context\_\_", "BaseExceptionGroup") are not `ImportError`, it will be printed as warning.
+Otherwise, the message will be ignored and the module will tips that don't import any modules in the method "\_\_find\_\_".
+
 ## Warning
 
 When your code raises the "ModuleNotFoundError", if there is the suggestion given by the package, you need to check it.
