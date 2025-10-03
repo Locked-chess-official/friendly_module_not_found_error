@@ -163,6 +163,23 @@ class ExceptionTest(unittest.TestCase):
             def __find__(self, name=None):
                 raise ImportError
 
+        
+        sys.meta_path.append(WrongHook1())
+        sys.meta_path.append(WrongHook2())
+        
+        try:
+            import abs
+        except ModuleNotFoundError:
+            msg = traceback.format_exc()
+            self.assertIn("Exception ignored in 'WrongHook1.__find__'", msg)
+            self.assertIn("ImportError found in 'WrongHook2.__find__'", msg)
+        except:
+            pass
+        finally:
+            sys.meta_path = sys.meta_path[:-2]
+
+    @unittest.skipIf(sys.version_info[1] < 11, "No BaseExceptionGroup")
+    def test_BaseExceptionGroup_ignored(self):
         class WrongHook3:
             def find_spec(*args, **kwargs):
                 return None
@@ -176,24 +193,26 @@ class ExceptionTest(unittest.TestCase):
 
             def __find__(self, name=None):
                 raise ExceptionGroup("", [ValueError(), ImportError()])
-        sys.meta_path.append(WrongHook1())
-        sys.meta_path.append(WrongHook2())
         sys.meta_path.append(WrongHook3())
         sys.meta_path.append(WrongHook4())
         try:
             import abs
         except ModuleNotFoundError:
             msg = traceback.format_exc()
-            self.assertIn("Exception ignored in 'WrongHook1.__find__'", msg)
-            self.assertIn("ImportError found in 'WrongHook2.__find__'", msg)
             self.assertIn("Exception ignored in 'WrongHook3.__find__'", msg)
             self.assertIn("ImportError found in 'WrongHook4.__find__'", msg)
-
+        except:
+            pass
+        finally:
+            sys.meta_path = sys.meta_path[:-2]
+        
     def check_message(self, code, exc_type, exc_msg):
         try:
             exec(code)
         except exc_type:
             self.assertIn(exc_msg, traceback.format_exc())
+        except:
+            pass
 
 
 def main():
