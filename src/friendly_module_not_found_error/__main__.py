@@ -148,6 +148,47 @@ class ExceptionTest(unittest.TestCase):
             if i:
                 self.check_message(i[0], i[1], i[2])
 
+    def test_wrong_find(self):
+        class WrongHook1:
+            def find_spec(*args, **kwargs):
+                return None
+            
+            def __find__(self, name=None):
+                raise ValueError
+            
+        class WrongHook2:
+            def find_spec(*args, **kwargs):
+                return None
+            
+            def __find__(self, name=None):
+                raise ImportError
+
+        class WrongHook3:
+            def find_spec(*args, **kwargs):
+                return None
+            
+            def __find__(self, name=None):
+                raise ExceptionGroup("", [ValueError(), SyntaxError()])
+
+        class WrongHook4:
+            def find_spec(*args, **kwargs):
+                return None
+
+            def __find__(self, name=None):
+                raise ExceptionGroup("", [ValueError(), ImportError()])
+        sys.meta_path.append(WrongHook1())
+        sys.meta_path.append(WrongHook2())
+        sys.meta_path.append(WrongHook3())
+        sys.meta_path.append(WrongHook4())
+        try:
+            import abs
+        except ModuleNotFoundError:
+            msg = traceback.format_exc()
+            self.assertIn("Exception ignored in 'WrongHook1.__find__'", msg)
+            self.assertIn("ImportError found in 'WrongHook2.__find__'", msg)
+            self.assertIn("Exception ignored in 'WrongHook3.__find__'", msg)
+            self.assertIn("ImportError found in 'WrongHook4.__find__'", msg)
+
     def check_message(self, code, exc_type, exc_msg):
         try:
             exec(code)

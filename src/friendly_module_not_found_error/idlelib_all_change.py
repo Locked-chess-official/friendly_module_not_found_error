@@ -3,7 +3,6 @@ import sys
 import traceback
 
 
-
 def get_message_lines(typ, exc, tb):
     """Return line composing the exception message."""
     if typ in (AttributeError, NameError):

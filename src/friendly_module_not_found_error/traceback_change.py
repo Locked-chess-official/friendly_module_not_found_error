@@ -115,7 +115,7 @@ def _import_error_tb(err, seen=None):
         seen.add(err)
     if minor >= 11 and isinstance(err, BaseExceptionGroup):
         for e in err.exceptions:
-            _import_error_tb(e)
+            _import_error_tb(e, seen)
     if err.__cause__ is not None:
         _import_error_tb(err.__cause__, seen)
     if err.__context__ is not None:
