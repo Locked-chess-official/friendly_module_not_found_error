@@ -1,8 +1,6 @@
 import traceback
 import sys
 from .handle_path import scan_dir, find_in_path
-import contextlib
-import io
 import itertools
 
 original_traceback_TracebackException_init = traceback.TracebackException.__init__
@@ -116,7 +114,7 @@ def _import_error_tb(err, seen=None):
     if isinstance(err, ImportError):
         seen.add(err)
     if minor >= 11 and isinstance(err, BaseExceptionGroup):
-        for e in err.exception:            
+        for e in err.exceptions:
             _import_error_tb(e)
     if err.__cause__ is not None:
         _import_error_tb(err.__cause__, seen)
@@ -130,6 +128,10 @@ def _copy_BaseExceptionGroup(exca, excb):
     exca.__context__ = excb.__context__
     exca.__suppress_context__ = excb.__suppress_context__
     exca.__traceback__ = excb.__traceback__
+    try:
+        exca.__notes__ = getattr(excb, "__notes__", None)
+    except:
+        exca.__notes__ = None
     exca.__dict__.update(excb.__dict__)
 
 def _remove_exception(exc_value, other_exc_value):
@@ -159,7 +161,7 @@ def _remove_exception(exc_value, other_exc_value):
                     _copy_BaseExceptionGroup(e, result[1])
                 new_exceptions.append(e)
                 
-        return True, exc_value, new_exception # BaseExceptionGroup.exceptions is readonly
+        return True, exc_value, new_exceptions # BaseExceptionGroup.exceptions is readonly
     else:
         return False, exc_value, []
 
@@ -206,7 +208,7 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
                     add_note(original_exc_value, f"\nImportError found in '{iname}.__find__' module {imodule!r}:\n"
                              "Don't import any modules in the method '__find__'")
                     continue
-                tb_exception = traceback.TracebackException(new_type, new_value, new_tb, chain=False)
+                tb_exception = traceback.TracebackException(new_type, new_value, new_tb)
                 add_note(original_exc_value, f"\nException ignored in '{iname}.__find__' module {imodule!r}:\n"
                                             + "".join(tb_exception.format()))
                 
@@ -315,7 +317,7 @@ def _calculate_closed_name(wrong_name, d):
         if result:
             return result
 
-    # Compute closest match
+    # Compute the closest match
 
     if len(d) > _MAX_CANDIDATE_ITEMS:
         return None
@@ -360,7 +362,7 @@ except:
 
     def _get_code_position(code, instruction_index):
         if instruction_index < 0:
-            return (None, None, None, None)
+            return None, None, None, None
         positions_gen = code.co_positions()
         return next(itertools.islice(positions_gen, instruction_index // 2, None))
 
