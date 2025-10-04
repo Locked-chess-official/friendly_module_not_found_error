@@ -109,10 +109,10 @@ def add_note(exc_value, note):
 def _import_error_tb(err, seen=None):
     if not isinstance(seen, set):
         seen = set()
-    if not err or err in seen:
+    if not err or id(err) in seen:
         return seen
     if isinstance(err, ImportError):
-        seen.add(err)
+        seen.add(id(err))
     if minor >= 11 and isinstance(err, BaseExceptionGroup):
         for e in err.exceptions:
             _import_error_tb(e, seen)
