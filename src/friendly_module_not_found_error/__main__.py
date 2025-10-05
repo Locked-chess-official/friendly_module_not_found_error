@@ -14,6 +14,7 @@ MODULE_TREE = {
     }
 }
 
+
 class DictLoader(importlib.abc.Loader):
     def __init__(self, fullname, node):
         self.fullname = fullname
@@ -29,6 +30,7 @@ class DictLoader(importlib.abc.Loader):
             code = self.node
         if code:
             exec(code, module.__dict__)
+
 
 class DictFinder(importlib.abc.MetaPathFinder):
     def __init__(self, name, tree):
@@ -61,11 +63,13 @@ class DictFinder(importlib.abc.MetaPathFinder):
                 if i not in module_dict:
                     return []
                 module_dict = module_dict[i]
-            a = list(module_dict.keys()) # wrong in code
+            a = list(module_dict.keys())  # wrong in code
             a.append("a")
             return a
 
+
 sys.meta_path.insert(0, DictFinder("mymodule", MODULE_TREE))
+
 
 def except_suggestion(top_name):
     suggest_list = []
@@ -87,15 +91,17 @@ def except_suggestion(top_name):
             all_result.append(result)
     return _calculate_closed_name(top_name, sorted(all_result))
 
+
 ant_suggestion = except_suggestion("ant")
 module_suggestion = except_suggestion("module")
 if _calculate_closed_name("aa", ["a"]) == "a":
     aa_suggestion_sentence = ". Did you mean: 'a'?"
 else:
     aa_suggestion_sentence = ""
-    
+
+
 class ExceptionTest(unittest.TestCase):
-    def test_top_import_exception(self):        
+    def test_top_import_exception(self):
         import_error_tuple = (
             ("import ant", ModuleNotFoundError, f"No module named 'ant'. Did you mean: {ant_suggestion!r}?"),
         )
@@ -137,12 +143,14 @@ class ExceptionTest(unittest.TestCase):
         import_error_tuple = (
             ("import module", ModuleNotFoundError, f"No module named 'module'. Did you mean: {module_suggestion!r}"),
             ("import mymodule.a", ModuleNotFoundError, "module 'mymodule' has no child module 'a', "
-             "but it appear in the final result from 'DictFinder.__find__'. "
-             "Is the code in 'DictFinder.__find__' or 'DictFinder.find_spec' wrong "
-             "or is the wrong in the environment?"
+                                                       "but it appear in the final result from 'DictFinder.__find__'. "
+                                                       "Is the code in 'DictFinder.__find__' or 'DictFinder.find_spec' wrong "
+                                                       "or is the wrong in the environment?"
              ),
-            ("import mymodule.submodule.b", ModuleNotFoundError, "module 'mymodule.submodule' has no child module 'b'; 'mymodule.submodule' is not a package"),
-            ("import mymodule.subpackage.aa", ModuleNotFoundError, f"module 'mymodule.subpackage' has no child module 'aa'{aa_suggestion_sentence}")
+            ("import mymodule.submodule.b", ModuleNotFoundError,
+             "module 'mymodule.submodule' has no child module 'b'; 'mymodule.submodule' is not a package"),
+            ("import mymodule.subpackage.aa", ModuleNotFoundError,
+             f"module 'mymodule.subpackage' has no child module 'aa'{aa_suggestion_sentence}")
         )
         for i in import_error_tuple:
             if i:
@@ -152,21 +160,20 @@ class ExceptionTest(unittest.TestCase):
         class WrongHook1:
             def find_spec(*args, **kwargs):
                 return None
-            
+
             def __find__(self, name=None):
                 raise ValueError
-            
+
         class WrongHook2:
             def find_spec(*args, **kwargs):
                 return None
-            
+
             def __find__(self, name=None):
                 raise ImportError
 
-        
         sys.meta_path.append(WrongHook1())
         sys.meta_path.append(WrongHook2())
-        
+
         try:
             import abs
         except ModuleNotFoundError:
@@ -183,7 +190,7 @@ class ExceptionTest(unittest.TestCase):
         class WrongHook3:
             def find_spec(*args, **kwargs):
                 return None
-            
+
             def __find__(self, name=None):
                 raise ExceptionGroup("", [ValueError(), SyntaxError()])
 
@@ -193,6 +200,7 @@ class ExceptionTest(unittest.TestCase):
 
             def __find__(self, name=None):
                 raise ExceptionGroup("", [ValueError(), ImportError()])
+
         sys.meta_path.append(WrongHook3())
         sys.meta_path.append(WrongHook4())
         try:
@@ -205,7 +213,7 @@ class ExceptionTest(unittest.TestCase):
             pass
         finally:
             sys.meta_path = sys.meta_path[:-2]
-        
+
     def check_message(self, code, exc_type, exc_msg):
         try:
             exec(code)
@@ -217,6 +225,7 @@ class ExceptionTest(unittest.TestCase):
 
 def main():
     unittest.main(module=__name__, exit=False)
+
 
 if __name__ == '__main__':
     main()

@@ -6,6 +6,7 @@ import sys
 
 original_runpy_get_module_details = runpy._get_module_details
 
+
 def _get_module_details(mod_name, error=ImportError):
     if mod_name.startswith("."):
         raise error("Relative module names not supported")
@@ -19,16 +20,16 @@ def _get_module_details(mod_name, error=ImportError):
             # error be raised by find_spec() below and then be caught. But do
             # not allow other errors to be caught.
             if e.name is None or (e.name != pkg_name and
-                    not pkg_name.startswith(e.name + ".")):
+                                  not pkg_name.startswith(e.name + ".")):
                 raise
         # Warn if the module has already been imported under its normal name
         existing = sys.modules.get(mod_name)
         if existing is not None and not hasattr(existing, "__path__"):
             from warnings import warn
             msg = "{mod_name!r} found in sys.modules after import of " \
-                "package {pkg_name!r}, but prior to execution of " \
-                "{mod_name!r}; this may result in unpredictable " \
-                "behaviour".format(mod_name=mod_name, pkg_name=pkg_name)
+                  "package {pkg_name!r}, but prior to execution of " \
+                  "{mod_name!r}; this may result in unpredictable " \
+                  "behaviour".format(mod_name=mod_name, pkg_name=pkg_name)
             warn(RuntimeWarning(msg))
 
     try:
@@ -64,11 +65,11 @@ def _get_module_details(mod_name, error=ImportError):
             if mod_name not in sys.modules:
                 raise  # No module loaded; being a package is irrelevant
             raise error(("%s; %r is a package and cannot " +
-                               "be directly executed") %(e, mod_name))
+                         "be directly executed") % (e, mod_name))
     loader = spec.loader
     if loader is None:
         raise error("%r is a namespace package and cannot be executed"
-                                                                 % mod_name)
+                    % mod_name)
     try:
         code = loader.get_code(mod_name)
     except ImportError as e:
@@ -76,5 +77,6 @@ def _get_module_details(mod_name, error=ImportError):
     if code is None:
         raise error("No code object available for %s" % mod_name)
     return mod_name, spec, code
+
 
 runpy._get_module_details = _get_module_details

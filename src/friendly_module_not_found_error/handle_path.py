@@ -2,6 +2,7 @@ import os
 import sys
 from importlib import machinery
 
+
 def scan_dir(path, namespace_package=False, need_main_py=False):
     """
     Return all the packages in the path without import
@@ -51,6 +52,7 @@ def scan_dir(path, namespace_package=False, need_main_py=False):
 
     return sorted(result)
 
+
 def find_in_path(name, mod="normal"):
     kwargs = {}
     if mod == "all":
@@ -63,7 +65,7 @@ def find_in_path(name, mod="normal"):
         if not hasattr(sys.modules[name], '__path__'):
             return []
         return sum([scan_dir(i, **kwargs) for i in sys.modules[name].__path__], [])
-        
+
     name_list = name.split(".")
     for i in sys.path:
         list_d = scan_dir(i)

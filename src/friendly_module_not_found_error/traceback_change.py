@@ -7,6 +7,7 @@ original_traceback_TracebackException_init = traceback.TracebackException.__init
 
 major, minor = sys.version_info[:2]
 
+
 def _compute_suggestion_error(exc_value, tb, wrong_name):
     if wrong_name is None or not isinstance(wrong_name, str):
         return None
@@ -28,7 +29,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             if hide_underscored:
                 d = [x for x in d if x[:1] != '_']
         except Exception:
-            return 
+            return None
     elif isinstance(exc_value, ImportError):
         if isinstance(exc_value, ModuleNotFoundError):
             return _handle_module(exc_value)
@@ -52,9 +53,9 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
             tb = tb.tb_next
         frame = tb.tb_frame
         d = (
-            list(frame.f_locals)
-            + list(frame.f_globals)
-            + list(frame.f_builtins)
+                list(frame.f_locals)
+                + list(frame.f_globals)
+                + list(frame.f_builtins)
         )
         d = [x for x in d if isinstance(x, str)]
 
@@ -82,6 +83,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
 
     return suggestion
 
+
 try:
     _MAX_STRING_SIZE = traceback._MAX_STRING_SIZE
     _MAX_CANDIDATE_ITEMS = traceback._MAX_CANDIDATE_ITEMS
@@ -93,10 +95,12 @@ except:
     _MOVE_COST = 2
     _CASE_COST = 1
 
+
 def _handle_module(exc_value):
     if not isinstance(exc_value, ModuleNotFoundError):
         return None
     return _suggestion_for_module(exc_value.name, original_exc_value=exc_value)
+
 
 def add_note(exc_value, note):
     if minor >= 11:
@@ -106,6 +110,7 @@ def add_note(exc_value, note):
             if not isinstance(BaseException.__getattribute__(exc_value, "__notes__", None), list):
                 BaseException.__setattr__(exc_value, "__notes__", [])
             BaseException.__getattribute__(exc_value, "__notes__").append(note)
+
 
 def _import_error_set(err, result=None, _seen=None):
     if not isinstance(result, set):
@@ -130,7 +135,8 @@ def _import_error_set(err, result=None, _seen=None):
 def _copy_BaseExceptionGroup(exca, excb):
     BaseExceptionGroup.__setattr__(exca, "__cause__", BaseExceptionGroup.__getattribute__(excb, "__cause__"))
     BaseExceptionGroup.__setattr__(exca, "__context__", BaseExceptionGroup.__getattribute__(excb, "__context__"))
-    BaseExceptionGroup.__setattr__(exca, "__suppress_context__", BaseExceptionGroup.__getattribute__(excb, "__suppress_context__"))
+    BaseExceptionGroup.__setattr__(exca, "__suppress_context__",
+                                   BaseExceptionGroup.__getattribute__(excb, "__suppress_context__"))
     BaseExceptionGroup.__setattr__(exca, "__traceback__", BaseExceptionGroup.__getattribute__(excb, "__traceback__"))
     try:
         BaseExceptionGroup.__setattr__(exca, "__notes__", BaseExceptionGroup.__getattribute__(excb, "__notes__"))
@@ -138,15 +144,15 @@ def _copy_BaseExceptionGroup(exca, excb):
         BaseExceptionGroup.__setattr__(exca, "__notes__", None)
 
     exca.__dict__.update(excb.__dict__)
-    if hasattr(excb, "__slots__"):            
+    if hasattr(excb, "__slots__"):
         for i in excb.__slots__:
             try:
                 BaseExceptionGroup.__setattr__(exca, i, getattr(excb, i))
             except:
                 pass
-        
 
-def creat_BaseExceptionGroup(exc, exceptions):    
+
+def creat_BaseExceptionGroup(exc, exceptions):
     try:
         return BaseExceptionGroup.__new__(type(exc),
                                           BaseExceptionGroup.__getattribute__(exc, "message"),
@@ -154,6 +160,7 @@ def creat_BaseExceptionGroup(exc, exceptions):
     except:
         return BaseExceptionGroup(BaseExceptionGroup.__getattribute__(exc, "message"),
                                   exceptions)
+
 
 def _remove_exception(exc_value, other_exc_value, _seen=None):
     if not isinstance(_seen, set):
@@ -173,7 +180,7 @@ def _remove_exception(exc_value, other_exc_value, _seen=None):
     if isinstance(BaseException.__getattribute__(exc_value, "__context__"), BaseException):
         if exc_value.__context__ is other_exc_value:
             BaseException.__setattr__(exc_value, "__context__", None)
-        else:            
+        else:
             result = _remove_exception(BaseException.__getattribute__(exc_value, "__context__"), other_exc_value, _seen)
             if result[0]:
                 BaseException.__setattr__(exc_value, "__context__",
@@ -185,7 +192,7 @@ def _remove_exception(exc_value, other_exc_value, _seen=None):
         for e in exc_value.exceptions:
             if e is not other_exc_value:
                 result = _remove_exception(e, other_exc_value, _seen)
-                if result[0]:                    
+                if result[0]:
                     e = creat_BaseExceptionGroup(result[1], result[2])
                     _copy_BaseExceptionGroup(e, result[1])
                     _seen.add(id(e))
@@ -193,10 +200,11 @@ def _remove_exception(exc_value, other_exc_value, _seen=None):
                 new_exceptions.append(e)
             else:
                 change = True
-                
-        return change, exc_value, new_exceptions # BaseExceptionGroup.exceptions is readonly
+
+        return change, exc_value, new_exceptions  # BaseExceptionGroup.exceptions is readonly
     else:
         return False, exc_value, []
+
 
 def _suggestion_for_module(name, mod="normal", original_exc_value=None):
     kwargs = {}
@@ -204,11 +212,11 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
         kwargs = {"namespace_package": True}
     elif mod == "run_module":
         kwargs = {"need_main_py": True}
-        
+
     all_result = []
     parent, _, child = name.rpartition('.')
     if len(child) > _MAX_STRING_SIZE:
-        return
+        return None
     suggest_list = []
     for i in sys.meta_path:
         if isinstance(i, type):
@@ -235,18 +243,19 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
             if original_exc_value:
                 try:
                     new_type, new_value, new_tb = sys.exc_info()
-                    _remove_exception(new_value, original_exc_value) # avoid to analyse the original ModuleNotFoundError
+                    _remove_exception(new_value,
+                                      original_exc_value)  # avoid to analyse the original ModuleNotFoundError
                     import_error_set = _import_error_set(new_value)
                     if import_error_set:
                         add_note(original_exc_value, f"\nImportError found in '{iname}.__find__' module {imodule!r}:\n"
-                                     "Don't import any modules in the method '__find__'")
+                                                     "Don't import any modules in the method '__find__'")
                         continue
                     tb_exception = traceback.TracebackException(new_type, new_value, new_tb)
                     add_note(original_exc_value, f"\nException ignored in '{iname}.__find__' module {imodule!r}:\n"
-                                                    + "".join(tb_exception.format()))
+                             + "".join(tb_exception.format()))
                 except:
                     add_note(original_exc_value, "\n<handle error failed in '{iname}.__find__' module {imodule!r}>\n")
-                
+
     if not parent:
         for paths in sys.path:
             suggest_list.append(scan_dir(paths, **kwargs))
@@ -260,6 +269,7 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
             all_result.append(result)
     return _calculate_closed_name(child, sorted(all_result))
 
+
 def _find_wrong_hook(name):
     parent, _, child = name.rpartition('.')
     for i in sys.meta_path:
@@ -271,6 +281,8 @@ def _find_wrong_hook(name):
                     return i
         except:
             pass
+    return None
+
 
 try:
     _levenshtein_distance = traceback._levenshtein_distance
@@ -289,7 +301,7 @@ except Exception:
         a = a[pre:]
         b = b[pre:]
         post = 0
-        while a[:post or None] and b[:post or None] and a[post-1] == b[post-1]:
+        while a[:post or None] and b[:post or None] and a[post - 1] == b[post - 1]:
             post -= 1
         a = a[:post or None]
         b = b[:post or None]
@@ -335,6 +347,7 @@ except Exception:
                 return max_cost + 1
         return result
 
+
     def _substitution_cost(ch_a, ch_b):
         if ch_a == ch_b:
             return 0
@@ -342,9 +355,10 @@ except Exception:
             return _CASE_COST
         return _MOVE_COST
 
+
 def _calculate_closed_name(wrong_name, d):
     try:
-        import _suggestions #type: ignore
+        import _suggestions  # type: ignore
     except ImportError:
         pass
     else:
@@ -377,11 +391,14 @@ def _calculate_closed_name(wrong_name, d):
             best_distance = current_distance
     return suggestion
 
+
 StackSummary = traceback.StackSummary
 try:
     _walk_tb_with_full_positions = traceback._walk_tb_with_full_positions
 except:
     walk_tb = traceback.walk_tb
+
+
     def _walk_tb_with_full_positions(tb):
         # Internal version of walk_tb that yields full code positions including
         # end line and column information.
@@ -390,10 +407,11 @@ except:
             # Yield tb_lineno when co_positions does not have a line number to
             # maintain behavior with walk_tb.
             if positions[0] is None:
-                yield tb.tb_frame, (tb.tb_lineno, ) + positions[1:]
+                yield tb.tb_frame, (tb.tb_lineno,) + positions[1:]
             else:
                 yield tb.tb_frame, positions
             tb = tb.tb_next
+
 
     def _get_code_position(code, instruction_index):
         if instruction_index < 0:
@@ -409,8 +427,9 @@ except:
             return func(value)
         except:
             return f'<{what} {func.__name__}() failed>'
-        
+
 TracebackException = traceback.TracebackException
+
 
 def handle_except(self, exc_type, exc_value, exc_traceback):
     if exc_type and issubclass(exc_type, ModuleNotFoundError) and \
@@ -421,7 +440,7 @@ def handle_except(self, exc_type, exc_value, exc_traceback):
         parent, _, child = wrong_name.rpartition('.')
         suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
         if suggestion == child:
-            wrong_hook = _find_wrong_hook(wrong_name)            
+            wrong_hook = _find_wrong_hook(wrong_name)
             if wrong_hook is not None:
                 if isinstance(wrong_hook, type):
                     wrong_hook_name = wrong_hook.__name__
@@ -438,15 +457,15 @@ def handle_except(self, exc_type, exc_value, exc_traceback):
                 if not self._str.endswith('?'):
                     self._str += "."
                 self._str += (" Site initialization is disabled, did you forget to "
-                + "add the site-packages directory to sys.path?")
+                              + "add the site-packages directory to sys.path?")
     elif exc_type and issubclass(exc_type, ImportError) and \
-                getattr(exc_value, "name_from", None) is not None:
+            getattr(exc_value, "name_from", None) is not None:
         wrong_name = getattr(exc_value, "name_from", None)
         suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
         if suggestion:
-            self._str += f". Did you mean: '{suggestion}'?"    
+            self._str += f". Did you mean: '{suggestion}'?"
     elif exc_type and issubclass(exc_type, (NameError, AttributeError)) and \
-                getattr(exc_value, "name", None) is not None:
+            getattr(exc_value, "name", None) is not None:
         wrong_name = getattr(exc_value, "name", None)
         suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name)
         if suggestion:
@@ -459,10 +478,11 @@ def handle_except(self, exc_type, exc_value, exc_traceback):
                 else:
                     self._str += f". Did you forget to import '{wrong_name}'?"
 
+
 def remove_stack(tb_exception):
     frames = [frame for frame in tb_exception.stack
               if "friendly_module_not_found_error" not in frame.filename]
-    
+
     tb_exception.stack = traceback.StackSummary.from_list(frames)
 
 
@@ -505,7 +525,6 @@ def _handle_syntax_error_fields_common(self, exc_type, exc_value):
     return False
 
 
-
 def _init_v7(self, exc_type, exc_value, exc_traceback, *,
              limit=None, lookup_lines=True, capture_locals=False, _seen=None):
     if _seen is None:
@@ -513,7 +532,7 @@ def _init_v7(self, exc_type, exc_value, exc_traceback, *,
     _seen.add(id(exc_value))
 
     if (exc_value and exc_value.__cause__ is not None
-        and id(exc_value.__cause__) not in _seen):
+            and id(exc_value.__cause__) not in _seen):
         cause = TracebackException(
             type(exc_value.__cause__),
             exc_value.__cause__,
@@ -526,7 +545,7 @@ def _init_v7(self, exc_type, exc_value, exc_traceback, *,
         cause = None
 
     if (exc_value and exc_value.__context__ is not None
-        and id(exc_value.__context__) not in _seen):
+            and id(exc_value.__context__) not in _seen):
         context = TracebackException(
             type(exc_value.__context__),
             exc_value.__context__,
@@ -564,7 +583,7 @@ def _init_v8(self, exc_type, exc_value, exc_traceback, *,
     _seen.add(id(exc_value))
 
     if (exc_value and exc_value.__cause__ is not None
-        and id(exc_value.__cause__) not in _seen):
+            and id(exc_value.__cause__) not in _seen):
         cause = TracebackException(
             type(exc_value.__cause__),
             exc_value.__cause__,
@@ -577,7 +596,7 @@ def _init_v8(self, exc_type, exc_value, exc_traceback, *,
         cause = None
 
     if (exc_value and exc_value.__context__ is not None
-        and id(exc_value.__context__) not in _seen):
+            and id(exc_value.__context__) not in _seen):
         context = TracebackException(
             type(exc_value.__context__),
             exc_value.__context__,
@@ -614,7 +633,7 @@ def _init_v9(self, exc_type, exc_value, exc_traceback, *,
     self._truncated = False
     try:
         if (exc_value and exc_value.__cause__ is not None
-            and id(exc_value.__cause__) not in _seen):
+                and id(exc_value.__cause__) not in _seen):
             cause = TracebackException(
                 type(exc_value.__cause__),
                 exc_value.__cause__,
@@ -626,7 +645,7 @@ def _init_v9(self, exc_type, exc_value, exc_traceback, *,
         else:
             cause = None
         if (exc_value and exc_value.__context__ is not None
-            and id(exc_value.__context__) not in _seen):
+                and id(exc_value.__context__) not in _seen):
             context = TracebackException(
                 type(exc_value.__context__),
                 exc_value.__context__,
@@ -675,7 +694,7 @@ def _init_v10(self, exc_type, exc_value, exc_traceback, *,
         handle_except(self, exc_type, exc_value, exc_traceback)
 
     self.__notes__ = getattr(exc_value, "__notes__", None)
-    
+
     if lookup_lines:
         self._load_lines()
 
@@ -686,7 +705,7 @@ def _init_v10(self, exc_type, exc_value, exc_traceback, *,
         while queue:
             te, e = queue.pop()
             if (e and e.__cause__ is not None
-                and id(e.__cause__) not in _seen):
+                    and id(e.__cause__) not in _seen):
                 cause = TracebackException(
                     type(e.__cause__),
                     e.__cause__,
@@ -704,7 +723,7 @@ def _init_v10(self, exc_type, exc_value, exc_traceback, *,
                 need_context = True
 
             if (e and e.__context__ is not None
-                and need_context and id(e.__context__) not in _seen):
+                    and need_context and id(e.__context__) not in _seen):
                 context = TracebackException(
                     type(e.__context__),
                     e.__context__,
@@ -743,9 +762,9 @@ def _init_v11(self, exc_type, exc_value, exc_traceback, *,
     self.exc_type = exc_type
     if not _handle_syntax_error_fields_common(self, exc_type, exc_value):
         handle_except(self, exc_type, exc_value, exc_traceback)
-        
+
     self.__notes__ = getattr(exc_value, '__notes__', None)
-    
+
     if lookup_lines:
         self._load_lines()
 
@@ -757,7 +776,7 @@ def _init_v11(self, exc_type, exc_value, exc_traceback, *,
             te, e = queue.pop()
 
             if (e and e.__cause__ is not None
-                and id(e.__cause__) not in _seen):
+                    and id(e.__cause__) not in _seen):
                 cause = TracebackException(
                     type(e.__cause__),
                     e.__cause__,
@@ -776,7 +795,7 @@ def _init_v11(self, exc_type, exc_value, exc_traceback, *,
                 need_context = True
 
             if (e and e.__context__ is not None
-                and need_context and id(e.__context__) not in _seen):
+                    and need_context and id(e.__context__) not in _seen):
                 context = TracebackException(
                     type(e.__context__),
                     e.__context__,
@@ -836,13 +855,13 @@ def _init_v12(self, exc_type, exc_value, exc_traceback, *,
     self.exc_type = exc_type
     if not _handle_syntax_error_fields_common(self, exc_type, exc_value):
         handle_except(self, exc_type, exc_value, exc_traceback)
-    
-    try:    
+
+    try:
         self.__notes__ = getattr(exc_value, '__notes__', None)
     except Exception as e:
         __notes__ = "__notes__"
         self.__notes__ = [f'Ignored error getting __notes__: {_safe_string(e, __notes__, repr)}']
-    
+
     if lookup_lines:
         self._load_lines()
 
@@ -854,7 +873,7 @@ def _init_v12(self, exc_type, exc_value, exc_traceback, *,
             te, e = queue.pop()
 
             if (e and e.__cause__ is not None
-                and id(e.__cause__) not in _seen):
+                    and id(e.__cause__) not in _seen):
                 cause = TracebackException(
                     type(e.__cause__),
                     e.__cause__,
@@ -873,7 +892,7 @@ def _init_v12(self, exc_type, exc_value, exc_traceback, *,
                 need_context = True
 
             if (e and e.__context__ is not None
-                and need_context and id(e.__context__) not in _seen):
+                    and need_context and id(e.__context__) not in _seen):
                 context = TracebackException(
                     type(e.__context__),
                     e.__context__,
@@ -960,7 +979,7 @@ def _init_v13(self, exc_type, exc_value, exc_traceback, *,
             te, e = queue.pop()
 
             if (e is not None and e.__cause__ is not None
-                and id(e.__cause__) not in _seen):
+                    and id(e.__cause__) not in _seen):
                 cause = TracebackException(
                     type(e.__cause__),
                     e.__cause__,
@@ -979,7 +998,7 @@ def _init_v13(self, exc_type, exc_value, exc_traceback, *,
                 need_context = True
 
             if (e is not None and e.__context__ is not None
-                and need_context and id(e.__context__) not in _seen):
+                    and need_context and id(e.__context__) not in _seen):
                 context = TracebackException(
                     type(e.__context__),
                     e.__context__,
@@ -1043,19 +1062,23 @@ original_TracebackException_format_exception_only = traceback.TracebackException
 
 if minor <= 10:
     import collections.abc
+
+
     def new_format_exception_ony(self, *, _depth=0):
-        yield from original_TracebackException_format_exception_only(self)        
+        yield from original_TracebackException_format_exception_only(self)
         if hasattr(self, '__notes__'):
             indent = 3 * _depth * ' '
             if (
-                isinstance(self.__notes__, collections.abc.Sequence)
-                and not isinstance(self.__notes__, (str, bytes))
+                    isinstance(self.__notes__, collections.abc.Sequence)
+                    and not isinstance(self.__notes__, (str, bytes))
             ):
                 for note in self.__notes__:
                     note = _safe_string(note, 'note')
                     yield from [indent + l + '\n' for l in note.split('\n')]
             elif self.__notes__ is not None:
                 yield indent + "{}\n".format(_safe_string(self.__notes__, '__notes__', func=repr))
+
+
     traceback.TracebackException.format_exception_only = new_format_exception_ony
 else:
     new_format_exception_ony = traceback.TracebackException.format_exception_only
