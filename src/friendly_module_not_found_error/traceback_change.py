@@ -102,9 +102,10 @@ def add_note(exc_value, note):
     if minor >= 11:
         exc_value.add_note(note)
     else:
-        if not isinstance(getattr(exc_value, "__notes__", None), list):
-            exc_value.__notes__ = []
-        exc_value.__notes__.append(note)
+        if hasattr(exc_value, "__dict__"):
+            if not isinstance(BaseException.__getattribute__(exc_value, "__notes__", None), list):
+                BaseException.__setattr__(exc_value, "__notes__", [])
+            BaseException.__getattribute__(exc_value, "__notes__").append(note)
 
 def _import_error_set(err, result=None, _seen=None):
     if not isinstance(result, set):
@@ -135,18 +136,15 @@ def _copy_BaseExceptionGroup(exca, excb):
         BaseExceptionGroup.__setattr__(exca, "__notes__", BaseExceptionGroup.__getattribute__(excb, "__notes__"))
     except:
         BaseExceptionGroup.__setattr__(exca, "__notes__", None)
-    try:
-        exca.__dict__.update(excb.__dict__)
-    except:
-        try:
-            if hasattr(exca, "__slots__") or hasattr(excb, "__slots__"):            
-                for i in (exca.__slots__ if hasattr(exca, "__slots__") else excb.__slots__):
-                    try:
-                        setattr(exca, i, getattr(excb, i))
-                    except:
-                        pass
-        except:
-            pass
+
+    exca.__dict__.update(excb.__dict__)
+    if hasattr(excb, "__slots__"):            
+        for i in excb.__slots__:
+            try:
+                BaseExceptionGroup.__setattr__(exca, i, getattr(excb, i))
+            except:
+                pass
+        
 
 def creat_BaseExceptionGroup(exc, exceptions):    
     try:
