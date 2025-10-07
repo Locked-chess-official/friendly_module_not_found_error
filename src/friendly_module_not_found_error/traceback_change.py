@@ -106,7 +106,8 @@ def add_note(exc_value, note):
     if minor >= 11:
         exc_value.add_note(note)
     else:
-        if not hasattr(exc_value, "__notes__") or not isinstance(BaseException.__getattribute__(exc_value, "__notes__"), list):
+        if not hasattr(exc_value, "__notes__") or \
+                not isinstance(BaseException.__getattribute__(exc_value, "__notes__"), list):
             BaseException.__setattr__(exc_value, "__notes__", [])
         BaseException.__getattribute__(exc_value, "__notes__").append(note)
 
@@ -132,6 +133,8 @@ def _import_error_set(err, result=None, _seen=None):
 
 
 def _copy_BaseExceptionGroup(exca, excb):
+    if exca is None:
+        return
     BaseExceptionGroup.__setattr__(exca, "__cause__", BaseExceptionGroup.__getattribute__(excb, "__cause__"))
     BaseExceptionGroup.__setattr__(exca, "__context__", BaseExceptionGroup.__getattribute__(excb, "__context__"))
     BaseExceptionGroup.__setattr__(exca, "__suppress_context__",
@@ -142,12 +145,13 @@ def _copy_BaseExceptionGroup(exca, excb):
     except:
         BaseExceptionGroup.__setattr__(exca, "__notes__", None)
 
-    exca.__dict__.update(excb.__dict__)  # BaseException must have the attribute '__dict__'
+    BaseExceptionGroup.__getattribute__(exca, "__dict__").update(
+        BaseExceptionGroup.__getattribute__(excb, "__dict__"))
     if hasattr(excb, "__slots__"):
         try:
-            for i in excb.__slots__:
+            for i in BaseExceptionGroup.__getattribute__(excb, "__slots__"):
                 try:
-                    BaseExceptionGroup.__setattr__(exca, i, getattr(excb, i))
+                    BaseExceptionGroup.__setattr__(exca, i, BaseExceptionGroup.__getattribute__(excb, i))
                 except:
                     pass
         except:
@@ -181,6 +185,8 @@ def cache_decorator(func):
 
 @cache_decorator
 def creat_BaseExceptionGroup(exc, exceptions):
+    if not exceptions:
+        return None
     try:
         return BaseExceptionGroup.__new__(type(exc),
                                           BaseExceptionGroup.__getattribute__(exc, "message"),
@@ -223,9 +229,10 @@ def _remove_exception(exc_value, other_exc_value, _seen=None):
                 if result[0]:
                     e = creat_BaseExceptionGroup(result[1], result[2])
                     _copy_BaseExceptionGroup(e, result[1])
+                change = True
+                if e:
                     _seen.add(id(e))
-                    change = True
-                new_exceptions.append(e)
+                    new_exceptions.append(e)
             else:
                 change = True
 
