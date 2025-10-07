@@ -106,7 +106,7 @@ def add_note(exc_value, note):
     if minor >= 11:
         exc_value.add_note(note)
     else:
-        if not hasattr(exc_value, "__notes__") or isinstance(BaseException.__getattribute__(exc_value, "__notes__"), list):
+        if not hasattr(exc_value, "__notes__") or not isinstance(BaseException.__getattribute__(exc_value, "__notes__"), list):
             BaseException.__setattr__(exc_value, "__notes__", [])
         BaseException.__getattribute__(exc_value, "__notes__").append(note)
 
