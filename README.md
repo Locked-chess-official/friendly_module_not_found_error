@@ -71,7 +71,7 @@ The change can clearly show the specific error in import and give the near name 
 
 python3.7+
 
-In friendly_module_not_found_error verison 0.4.2, it supports python3.7+.
+In friendly_module_not_found_error version 0.4.2, it supports python3.7+.
 
 ## License
 

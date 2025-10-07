@@ -106,10 +106,9 @@ def add_note(exc_value, note):
     if minor >= 11:
         exc_value.add_note(note)
     else:
-        if hasattr(exc_value, "__dict__"):
-            if not isinstance(BaseException.__getattribute__(exc_value, "__notes__", None), list):
-                BaseException.__setattr__(exc_value, "__notes__", [])
-            BaseException.__getattribute__(exc_value, "__notes__").append(note)
+        if not hasattr(exc_value, "__notes__") or isinstance(BaseException.__getattribute__(exc_value, "__notes__"), list):
+            BaseException.__setattr__(exc_value, "__notes__", [])
+        BaseException.__getattribute__(exc_value, "__notes__").append(note)
 
 
 def _import_error_set(err, result=None, _seen=None):
@@ -143,15 +142,44 @@ def _copy_BaseExceptionGroup(exca, excb):
     except:
         BaseExceptionGroup.__setattr__(exca, "__notes__", None)
 
-    exca.__dict__.update(excb.__dict__)
+    exca.__dict__.update(excb.__dict__)  # BaseException must have the attribute '__dict__'
     if hasattr(excb, "__slots__"):
-        for i in excb.__slots__:
-            try:
-                BaseExceptionGroup.__setattr__(exca, i, getattr(excb, i))
-            except:
-                pass
+        try:
+            for i in excb.__slots__:
+                try:
+                    BaseExceptionGroup.__setattr__(exca, i, getattr(excb, i))
+                except:
+                    pass
+        except:
+            pass
 
 
+def cache_decorator(func):
+    cache = {}
+    verify = {}
+
+    def wrapper(exc, exceptions):
+        key = (id(exc), tuple(id(i) for i in exceptions))
+        try:
+            if key in cache and key in verify:
+                cache_value = verify[key]
+                if cache_value[0] is exc and len(cache_value[1]) == len(exceptions):
+                    for i, j in zip(cache_value[1], exceptions):
+                        if i is not j:
+                            break
+                    else:
+                        return cache[key]
+        except:
+            pass
+        result = func(exc, exceptions)
+        cache[key] = result
+        verify[key] = (exc, exceptions)
+        return result
+
+    return wrapper
+
+
+@cache_decorator
 def creat_BaseExceptionGroup(exc, exceptions):
     try:
         return BaseExceptionGroup.__new__(type(exc),
@@ -247,8 +275,15 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
                                       original_exc_value)  # avoid to analyse the original ModuleNotFoundError
                     import_error_set = _import_error_set(new_value)
                     if import_error_set:
-                        add_note(original_exc_value, f"\nImportError found in '{iname}.__find__' module {imodule!r}:\n"
-                                                     "Don't import any modules in the method '__find__'")
+                        frames = []
+                        for frame, lineno in traceback.walk_tb(new_tb):
+                            if "idlelib" not in frame.f_code.co_filename and "friendly_module_not_found_error" not in frame.f_code.co_filename:
+                                frames.append(traceback.FrameSummary(frame.f_code.co_filename,
+                                                                     lineno,
+                                                                     frame.f_code.co_name))
+                        add_note(original_exc_value, f"\nImportError found in '{iname}.__find__' module {imodule!r}:")
+                        add_note(original_exc_value, "".join(traceback.format_list(frames)))
+                        add_note(original_exc_value, "Don't import any modules in the method '__find__'")
                         continue
                     tb_exception = traceback.TracebackException(new_type, new_value, new_tb)
                     add_note(original_exc_value, f"\nException ignored in '{iname}.__find__' module {imodule!r}:\n"

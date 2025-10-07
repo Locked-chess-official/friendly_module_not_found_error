@@ -4,6 +4,7 @@ import traceback
 
 major, minor = sys.version_info[:2]
 
+
 def get_message_lines(typ, exc, tb):
     """Return line composing the exception message."""
     if typ in (AttributeError, NameError):
@@ -14,14 +15,15 @@ def get_message_lines(typ, exc, tb):
     else:
         return traceback.format_exception_only(typ, exc)
 
-    
+
 try:
     import idlelib.run
     from idlelib.run import flush_stdout, cleanup_traceback
+
     original_idlelib_run_print_exception = idlelib.run.print_exception
 except:
     print_exception = original_idlelib_run_print_exception = None
-else:    
+else:
     def print_exception():
         import linecache
         linecache.checkcache()
@@ -64,16 +66,17 @@ else:
                 else:
                     print(f"{prefix2}  | <exception {type(sub).__name__} has printed>")
                     need_print_underline = True
+                need_print_underline *= (i == len(exc.exceptions))
                 if need_print_underline:
                     print(f"{prefix2}  +------------------------------------", file=efile)
 
         def print_exc(typ, exc, tb, prefix=""):
             seen.add(id(exc))
             context = exc.__context__
-            cause = exc.__cause__        
-            prefix2 = f"{prefix}| " if prefix else "" 
+            cause = exc.__cause__
+            prefix2 = f"{prefix}| " if prefix else ""
             if cause is not None and id(cause) not in seen:
-                print_exc(type(cause), cause, cause.__traceback__, prefix)            
+                print_exc(type(cause), cause, cause.__traceback__, prefix)
                 print(f"{prefix2}\n{prefix2}The above exception was the direct cause "
                       f"of the following exception:\n{prefix2}", file=efile)
             elif (context is not None and
@@ -86,7 +89,7 @@ else:
                 print_exc_group(typ, exc, tb, prefix=prefix)
             else:
                 if tb:
-                    print(f"{prefix2}Traceback (most recent call last):", file=efile)                
+                    print(f"{prefix2}Traceback (most recent call last):", file=efile)
                     tbe = traceback.extract_tb(tb)
                     cleanup_traceback(tbe, exclude)
                     if prefix:
