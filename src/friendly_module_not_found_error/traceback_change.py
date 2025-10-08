@@ -71,7 +71,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name):
                 return f"self.{wrong_name}"
 
     suggestion = _calculate_closed_name(wrong_name, d)
-    if minor >= 14:
+    if minor >= 15:
         try:
             # If no direct attribute match found, check for nested attributes
             from contextlib import suppress
@@ -496,7 +496,7 @@ def handle_except(self, exc_type, exc_value, exc_traceback):
                               "or is the wrong in the environment?")
         elif suggestion:
             self._str += f". Did you mean: '{suggestion}'?"
-        if minor >= 14:
+        if minor >= 15:
             top = wrong_name.partition('.')[0]
             if sys.flags.no_site and not parent and top not in sys.stdlib_module_names:
                 if not self._str.endswith('?'):

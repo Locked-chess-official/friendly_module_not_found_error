@@ -47,7 +47,10 @@ In version 1.0.6, it provide two api:
 - friendly_module_not_found_error.unchange(): restore the original behavior of the module not found error.
 - friendly_module_not_found_error.rechange(): change the behavior of the module not found error to the friendly way.
 
-## Example
+In version 1.0.20, it add two keywords:
+
+- unchange(full_recovery=False): If "full_recovery" is False, when `sys.excepthook` is not `sys.__excepthook__`, it only recovery the `sys.__excepthook__` and won't touch the `sys.excepthook`
+- rechange(full_rechange=False): If "full_rechange" is False, when `sys.excepthook` is not `sys.__excepthook__`, it only change the `sys.__excepthook__` and won't touch the `sys.excepthook`
 
 ## Effect and explain
 
@@ -71,13 +74,13 @@ The change can clearly show the specific error in import and give the near name 
 
 python3.7+
 
-In friendly_module_not_found_error version 0.4.2, it supports python3.7+.
+In friendly_module_not_found_error version 0.4.2+, it supports python3.7+.
 
 ## License
 
 This package is licensed under the MIT License. See the LICENSE file for more information.
 
-## issues
+## Issues
 
 If you have any questions or suggestions, please open an [issue](https://github.com/Locked-chess-official/friendly_module_not_found_error/issues) on GitHub.
 
@@ -87,7 +90,7 @@ Contributions are welcome! Please submit a [pull request](https://github.com/Loc
 
 ## Data
 
-The test for "\_\_main\_\_.py" here:
+The test for "\_\_main\_\_.py" here (old data in the environment where the number of the site packages is about 260):
 
 | No. | number of entries | used time(/s) | average time(/s) | result |
 |-- | -- | -- | -- | -- |
@@ -119,8 +122,8 @@ def find_all_packages() -> list[str]:
     """
     return sorted(sum([scan_dir(i) if
                 isinstance(i, str) else []
-                for i in sys.path ], []) + 
-                list(sys.builtin_module_names))"
+                for i in sys.path], []) + 
+                list(sys.builtin_module_names))
 
 ```
 

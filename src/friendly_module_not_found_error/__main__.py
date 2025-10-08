@@ -169,7 +169,7 @@ class ExceptionTest(unittest.TestCase):
                 return None
 
             def __find__(self, name=None):
-                raise ImportError
+                raise ImportError("this is not ImportError")
 
         sys.meta_path.append(WrongHook1())
         sys.meta_path.append(WrongHook2())
@@ -180,6 +180,7 @@ class ExceptionTest(unittest.TestCase):
             msg = traceback.format_exc()
             self.assertIn("Exception ignored in 'WrongHook1.__find__'", msg)
             self.assertIn("ImportError found in 'WrongHook2.__find__'", msg)
+            self.assertNotIn("this is not ImportError", msg)
         except:
             pass
         finally:
@@ -199,7 +200,7 @@ class ExceptionTest(unittest.TestCase):
                 return None
 
             def __find__(self, name=None):
-                raise ExceptionGroup("", [ValueError(), ImportError()])
+                raise ExceptionGroup("", [ValueError(), ImportError("this is not ImportError")])
 
         sys.meta_path.append(WrongHook3())
         sys.meta_path.append(WrongHook4())
@@ -209,6 +210,7 @@ class ExceptionTest(unittest.TestCase):
             msg = traceback.format_exc()
             self.assertIn("Exception ignored in 'WrongHook3.__find__'", msg)
             self.assertIn("ImportError found in 'WrongHook4.__find__'", msg)
+            self.assertNotIn("this is not ImportError", msg)
         except:
             pass
         finally:

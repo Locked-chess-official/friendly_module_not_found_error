@@ -44,21 +44,27 @@ def _excepthook(exc_type, exc_value, exc_tb):
 sys.excepthook = sys.__excepthook__ = _excepthook
 
 
-def unchange():
+def unchange(full_recovery=False):
     traceback.TracebackException.__init__ = original_traceback_TracebackException_init
     traceback.TracebackException.format_exception_only = original_TracebackException_format_exception_only
     runpy._get_module_details = original_runpy_get_module_details
     if _has_idlelib:
         idlelib.run.print_exception = original_idlelib_run_print_exception
     importlib._bootstrap._find_and_load_unlocked = original_find_and_load_unlocked
-    sys.excepthook = sys.__excepthook__ = original_sys_excepthook
+    if sys.excepthook is sys.__excepthook__ or full_recovery:
+        sys.excepthook = sys.__excepthook__ = original_sys_excepthook
+    else:
+        sys.__excepthook__ = original_sys_excepthook
 
 
-def rechange():
+def rechange(full_rechange=False):
     traceback.TracebackException.__init__ = new_init
     traceback.TracebackException.format_exception_only = new_format_exception_ony
     runpy._get_module_details = _get_module_details
     if _has_idlelib:
         idlelib.run.print_exception = print_exception
     importlib._bootstrap._find_and_load_unlocked = _find_and_load_unlocked
-    sys.excepthook = sys.__excepthook__ = _excepthook
+    if sys.excepthook is sys.__excepthook__ or full_rechange:
+        sys.excepthook = sys.__excepthook__ = _excepthook
+    else:
+        sys.__excepthook__ = _excepthook
