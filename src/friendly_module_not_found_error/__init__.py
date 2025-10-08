@@ -27,15 +27,18 @@ original_sys_excepthook = sys.__excepthook__
 
 
 def _excepthook(exc_type, exc_value, exc_tb):
-    tb_exception = traceback.TracebackException(
-        exc_type, exc_value, exc_tb, capture_locals=False
-    )
-    if minor < 13:
-        for line in tb_exception.format():
-            sys.stderr.write(line)
-    else:
-        for line in tb_exception.format(colorize=True):
-            sys.stderr.write(line)
+    try:
+        tb_exception = traceback.TracebackException(
+            exc_type, exc_value, exc_tb, capture_locals=False
+        )
+        if minor < 13:
+            for line in tb_exception.format():
+                sys.stderr.write(line)
+        else:
+            for line in tb_exception.format(colorize=True):
+                sys.stderr.write(line)
+    except:
+        traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
 
 
 sys.excepthook = sys.__excepthook__ = _excepthook
