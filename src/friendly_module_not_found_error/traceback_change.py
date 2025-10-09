@@ -292,7 +292,10 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
                                                                      lineno,
                                                                      frame.f_code.co_name))
                         add_note(original_exc_value, f"\nImportError found in '{iname}.__find__' module {imodule!r}:")
-                        add_note(original_exc_value, "".join(traceback.format_list(frames)))
+                        tb_msg = "".join(traceback.format_list(frames))
+                        while tb_msg.endswith("\n") or tb_msg.endswith(" "):
+                            tb_msg = tb_msg[:-1]
+                        add_note(original_exc_value, tb_msg)
                         add_note(original_exc_value, "Don't import any modules in the method '__find__'")
                         continue
                     tb_exception = traceback.TracebackException(new_type, new_value, new_tb)

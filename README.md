@@ -147,7 +147,7 @@ class MyImportHook:
 ```
 
 The "\_\_find\_\_" method should return a list of all modules that are available to the import hook without import them.
-If the "name" is provided, the method should return a list of all submodules that under the module named "name". Or it needs to return all top modules if the "name" is None.
+If the "name" is provided, the method should return a list of all submodules that under the module named "name" (without "."). Or it needs to return all top modules if the "name" is None.
 The name should be the full name of the module, such as:
 
 ```plaintext
