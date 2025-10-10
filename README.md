@@ -15,6 +15,8 @@ pip install friendly_module_not_found_error
 
 ## Usage
 
+No need to import the package. It use a file named "hatch_autorun_friendly_module_not_found_error.pth" to import the packages at the beginning.
+
 You can use the code to test the effects of the package:
 
 ```python
@@ -62,9 +64,12 @@ import xxx.yyy.zzz
 
 If "xxx" not exist, the message is:
 "**No module named 'xxx'**"
+
 If "xxx" exist but "yyy" not exist, the message is:
 "**module 'xxx' has no child module 'yyy'**"
+
 Then the message add like the text below:
+
 The final name will be compared to all module at that path. If at the top, it first compared with stdlib and then compared with the path in `sys.path`. Or, if the module before is not a package and the now module not exist, the message will add "module '...' is not a package". For the non-package module, it won't support for this condition: module has a child module, and it has child module. For package, it will scan the attribute "\_\_path\_\_" to get all possible child module to compare.
 
 The change can clearly show the specific error in import and give the near name suggestion. For example, the original is "No module named 'xxx.yyy.zzz'", we cannot get message that which step is wrong, now we can see which step is wrong:
@@ -87,6 +92,12 @@ If you have any questions or suggestions, please open an [issue](https://github.
 ## Contributing
 
 Contributions are welcome! Please submit a [pull request](https://github.com/Locked-chess-official/friendly_module_not_found_error/pulls) with your changes.
+
+## Do it with python
+
+Now the [branch](https://github.com/Locked-chess-official/cpython/tree/finally_suggestion_in_module) for it is available.
+
+This branch uses the mode of this package. You can try that.
 
 ## Data
 
@@ -147,6 +158,7 @@ class MyImportHook:
 ```
 
 The "\_\_find\_\_" method should return a list of all modules that are available to the import hook without import them.
+
 If the "name" is provided, the method should return a list of all submodules that under the module named "name" (without "."). Or it needs to return all top modules if the "name" is None.
 The name should be the full name of the module, such as:
 
@@ -162,13 +174,17 @@ topmodule/
 
 The name of the top module is "topmodule", the name of the subpackage is "topmodule.subpackage", and the name of the submodule is "topmodule.subpackage.submodule".
 
-If exception raised in the method "\_\_find\_\_", the exception will be ignored and the default behavior will be used.
-If the all of the exceptions in the exception chain ("\_\_cause\_\_", "\_\_context\_\_", "BaseExceptionGroup") are not `ImportError`, it will be printed as warning.
-Otherwise, the message will be ignored and the module will tips that don't import any modules in the method "\_\_find\_\_".
+If exception raised in the method "\_\_find\_\_", the exception will be ignored:
+
+- If the all of the exceptions in the exception chain ("\_\_cause\_\_", "\_\_context\_\_", "BaseExceptionGroup") are not `ImportError`, it will be printed as warning.
+- Otherwise, the message will be ignored and the module will tips that don't import any modules in the method "\_\_find\_\_".
+
+If [PEP810](https://peps.python.org/pep-0810/) is accepted, when use this module, please ensure that no lazy import in the method "\_\_find\_\_".
 
 ## Warning
 
 When your code raises the "ModuleNotFoundError", if there is the suggestion given by the package, you need to check it.
+
 Anyway, if your IDE suggests you to `pip install` the wrong name module, check it instead of following it blindly. It may be a malicious package.
 
 ## Rejected suggestion
