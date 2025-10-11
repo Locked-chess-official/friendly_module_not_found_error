@@ -2,12 +2,46 @@ import traceback
 import sys
 from .handle_path import scan_dir, find_in_path
 import itertools
+import _frozen_importlib_external
+import threading
+PathFinder = _frozen_importlib_external.PathFinder
 
 original_traceback_TracebackException_init = traceback.TracebackException.__init__
 
 major, minor = sys.version_info[:2]
 
 
+def traceback_to_tuples(tb):
+    extracted = traceback.extract_tb(tb)
+    return tuple((f.filename, f.lineno, f.name, f.line) for f in extracted)
+
+
+def avoid_multianalyze_decorate(func):
+    _analysis_local = threading.local()  # threading safety
+    
+    def wrapper(exc_value, tb, wrong_name):
+        if not hasattr(_analysis_local, 'tb_set'):
+            _analysis_local.tb_set = set()
+        if not hasattr(_analysis_local, 'times'):
+            _analysis_local.times = 0
+        tuple_tb = traceback_to_tuples(tb)        
+        if tuple_tb in _analysis_local.tb_set:
+            return
+        _analysis_local.tb_set.add(tuple_tb)
+        _analysis_local.times += 1
+        try:
+            return func(exc_value, tb, wrong_name)
+        except:
+            add_note(exc_value, "<suggestion given failed>")
+        finally:
+            _analysis_local.times -= 1
+            if _analysis_local.times == 0:
+                _analysis_local.tb_set.clear()
+            
+    return wrapper
+
+
+@avoid_multianalyze_decorate
 def _compute_suggestion_error(exc_value, tb, wrong_name):
     if wrong_name is None or not isinstance(wrong_name, str):
         return None
@@ -285,16 +319,14 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
                                       original_exc_value)  # avoid to analyse the original ModuleNotFoundError
                     import_error_set = _import_error_set(new_value)
                     if import_error_set:
-                        frames = []
-                        for frame, lineno in traceback.walk_tb(new_tb):
-                            if "idlelib" not in frame.f_code.co_filename and "friendly_module_not_found_error" not in frame.f_code.co_filename:
-                                frames.append(traceback.FrameSummary(frame.f_code.co_filename,
-                                                                     lineno,
-                                                                     frame.f_code.co_name))
-                        add_note(original_exc_value, f"\nImportError found in '{iname}.__find__' module {imodule!r}:")
+                        frames = [
+                            fs for fs in traceback.extract_tb(new_tb)
+                            if "idlelib" not in fs.filename and "friendly_module_not_found_error" not in fs.filename
+                        ]
                         tb_msg = "".join(traceback.format_list(frames))
                         while tb_msg.endswith("\n") or tb_msg.endswith(" "):
                             tb_msg = tb_msg[:-1]
+                        add_note(original_exc_value, f"\nImportError found in '{iname}.__find__' module {imodule!r}:")
                         add_note(original_exc_value, tb_msg)
                         add_note(original_exc_value, "Don't import any modules in the method '__find__'")
                         continue
@@ -303,12 +335,12 @@ def _suggestion_for_module(name, mod="normal", original_exc_value=None):
                              + "".join(tb_exception.format()))
                 except:
                     add_note(original_exc_value, "\n<handle error failed in '{iname}.__find__' module {imodule!r}>\n")
-
-    if not parent:
-        for paths in sys.path:
-            suggest_list.append(scan_dir(paths, **kwargs))
-    else:
-        suggest_list.append(find_in_path(parent, mod=mod))
+    if PathFinder in sys.meta_path:
+        if not parent:
+            for paths in sys.path:
+                suggest_list.append(scan_dir(paths, **kwargs))
+        else:
+            suggest_list.append(find_in_path(parent, mod=mod))
     for i in suggest_list:
         if child in i:
             return child
