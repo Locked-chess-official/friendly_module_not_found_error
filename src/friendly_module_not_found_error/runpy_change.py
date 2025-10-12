@@ -53,10 +53,14 @@ def _get_module_details(mod_name, error=ImportError):
             msg = "No module named %r" % mod_name
         else:
             msg = "module %r has no child module %r" % (parent, child)
-        suggestion = _suggestion_for_module(name=mod_name, mod="run_module")
+        exception_target = []
+        suggestion = _suggestion_for_module(name=mod_name, mod="run_module", exception_target=exception_target)
         if suggestion:
             msg += ". Did you mean: %r?" % suggestion
-        raise error(msg)
+        err = error(msg)
+        if exception_target:
+            err.__notes__ = exception_target
+        raise err
     if spec.submodule_search_locations is not None:
         if mod_name == "__main__" or mod_name.endswith(".__main__"):
             raise error("Cannot use package as __main__ module")
