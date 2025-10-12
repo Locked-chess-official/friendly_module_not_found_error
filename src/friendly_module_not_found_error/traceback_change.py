@@ -18,7 +18,7 @@ def traceback_to_tuples(tb):
 
 
 def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None, _seen=threading.local()):
-    def add_to_target(new_value, new_exc, new_tb, ignore_msg="suggestion:"):  # type: ignore
+    def add_to_target(new_value, new_exc, new_tb, ignore_msg="suggestion"):  # type: ignore
         if isinstance(exception_target, list):
             tb_tuple = traceback_to_tuples(new_tb)
             if tb_tuple not in _seen._new_seen:
@@ -27,16 +27,16 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None, 
                 msg = TracebackException(new_exc, new_value, new_tb).format()
                 while msg.endswith("\n") or msg.endswith(" "):
                     msg = msg[:-1]
-                exception_target.append("\nException ignored in " + ignore_msg)
+                exception_target.append(f"\nException ignored in {ignore_msg}:")
                 exception_target.append(msg)
 
     def handle_special_target(new_tb, special_header, special_tips):  # type: ignore
         if isinstance(exception_target, list):
-            if "Traceback (most recent call last):" in special_header:
+            if "Traceback (most recent call last):" in special_header + "\n" + special_tips:
                 try:
                     # special handle is not print the exception, so this message shouldn't be contained
                     raise ValueError(
-                        f"special handle header message shouldn't contain 'Traceback (most recent call last):'")
+                        f"special handle message shouldn't contain 'Traceback (most recent call last):'")
                 except:
                     new_exc, new_value, new_tb = sys.exc_info()
                     add_to_target(new_exc, new_value, new_tb, "handle_special_target")
@@ -193,113 +193,23 @@ def _import_error_set(err, result=None, _seen=None):
     return result
 
 
-def _copy_BaseExceptionGroup(exca, excb):
-    if exca is None:
-        return
-    BaseExceptionGroup.__setattr__(exca, "__cause__", BaseExceptionGroup.__getattribute__(excb, "__cause__"))
-    BaseExceptionGroup.__setattr__(exca, "__context__", BaseExceptionGroup.__getattribute__(excb, "__context__"))
-    BaseExceptionGroup.__setattr__(exca, "__suppress_context__",
-                                   BaseExceptionGroup.__getattribute__(excb, "__suppress_context__"))
-    BaseExceptionGroup.__setattr__(exca, "__traceback__", BaseExceptionGroup.__getattribute__(excb, "__traceback__"))
-    try:
-        BaseExceptionGroup.__setattr__(exca, "__notes__", BaseExceptionGroup.__getattribute__(excb, "__notes__"))
-    except:
-        BaseExceptionGroup.__setattr__(exca, "__notes__", None)
-
-    BaseExceptionGroup.__getattribute__(exca, "__dict__").update(
-        BaseExceptionGroup.__getattribute__(excb, "__dict__"))
-    if hasattr(excb, "__slots__"):
-        try:
-            for i in BaseExceptionGroup.__getattribute__(excb, "__slots__"):
-                try:
-                    BaseExceptionGroup.__setattr__(exca, i, BaseExceptionGroup.__getattribute__(excb, i))
-                except:
-                    pass
-        except:
-            pass
-
-
-def cache_decorator(func):
-    cache = {}
-    verify = {}
-
-    def wrapper(exc, exceptions):
-        key = (id(exc), tuple(id(i) for i in exceptions))
-        try:
-            if key in cache and key in verify:
-                cache_value = verify[key]
-                if cache_value[0] is exc and len(cache_value[1]) == len(exceptions):
-                    for i, j in zip(cache_value[1], exceptions):
-                        if i is not j:
-                            break
-                    else:
-                        return cache[key]
-        except:
-            pass
-        result = func(exc, exceptions)
-        cache[key] = result
-        verify[key] = (exc, exceptions)
-        return result
-
-    return wrapper
-
-
-@cache_decorator
-def creat_BaseExceptionGroup(exc, exceptions):
-    if not exceptions:
-        return None
-    try:
-        return BaseExceptionGroup.__new__(type(exc),
-                                          BaseExceptionGroup.__getattribute__(exc, "message"),
-                                          exceptions)
-    except:
-        return BaseExceptionGroup(BaseExceptionGroup.__getattribute__(exc, "message"),
-                                  exceptions)
-
-
 def _remove_exception(exc_value, other_exc_value, _seen=None):
     if not isinstance(_seen, set):
         _seen = set()
     if id(exc_value) in _seen:
-        return False, exc_value, []
+        return
     _seen.add(id(exc_value))
     if isinstance(BaseException.__getattribute__(exc_value, "__cause__"), BaseException):
         if BaseException.__getattribute__(exc_value, "__cause__") is other_exc_value:
             BaseException.__setattr__(exc_value, "__cause__", None)
         else:
-            result = _remove_exception(BaseException.__getattribute__(exc_value, "__cause__"), other_exc_value, _seen)
-            if result[0]:
-                BaseException.__setattr__(exc_value, "__cause__",
-                                          creat_BaseExceptionGroup(result[1], result[2]))
-                _copy_BaseExceptionGroup(BaseException.__getattribute__(exc_value, "__cause__"), result[1])
+            _remove_exception(BaseException.__getattribute__(exc_value, "__cause__"), other_exc_value, _seen)
     if isinstance(BaseException.__getattribute__(exc_value, "__context__"), BaseException):
         if exc_value.__context__ is other_exc_value:
             BaseException.__setattr__(exc_value, "__context__", None)
         else:
-            result = _remove_exception(BaseException.__getattribute__(exc_value, "__context__"), other_exc_value, _seen)
-            if result[0]:
-                BaseException.__setattr__(exc_value, "__context__",
-                                          creat_BaseExceptionGroup(result[1], result[2]))
-                _copy_BaseExceptionGroup(BaseException.__getattribute__(exc_value, "__context__"), result[1])
-    if minor >= 11 and isinstance(exc_value, BaseExceptionGroup):
-        new_exceptions = []
-        change = False
-        for e in exc_value.exceptions:
-            if e is not other_exc_value:
-                result = _remove_exception(e, other_exc_value, _seen)
-                if result[0]:
-                    e = creat_BaseExceptionGroup(result[1], result[2])
-                    _copy_BaseExceptionGroup(e, result[1])
-                change = True
-                if e:
-                    _seen.add(id(e))
-                    new_exceptions.append(e)
-            else:
-                change = True
-
-        return change, exc_value, new_exceptions  # BaseExceptionGroup.exceptions is readonly
-    else:
-        return False, exc_value, []
+            _remove_exception(BaseException.__getattribute__(exc_value, "__context__"), other_exc_value, _seen)
+            
 
 
 def _suggestion_for_module(name, mod="normal", exception_target=None, original_exc_value=None):
@@ -355,8 +265,11 @@ def _suggestion_for_module(name, mod="normal", exception_target=None, original_e
                     exception_target.append("Don't import any modules in the method '__find__'")
                     continue
                 tb_exception = traceback.TracebackException(new_type, new_value, new_tb)
+                msg = "".join(tb_exception.format())
+                while msg.endswith("\n") or msg.endswith(" "):
+                    msg = msg[:-1]
                 exception_target.append(f"\nException ignored in '{iname}.__find__' module {imodule!r}:\n"
-                                        + "".join(tb_exception.format()))
+                                        + msg)
 
     if PathFinder in sys.meta_path:
         if not parent:
