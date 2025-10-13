@@ -4,6 +4,7 @@ from .handle_path import scan_dir, find_in_path
 import itertools
 import _frozen_importlib_external  # type: ignore
 import threading
+import collections.abc
 
 PathFinder = _frozen_importlib_external.PathFinder
 
@@ -422,7 +423,7 @@ def _safe_string(value, what, func=str,
     except:
         if isinstance(exception_target, list):
             typ, val, tb = sys.exc_info()
-            _add_exception_note(typ, val, tb, f"{what} {func.__name__}", exception_target, exception_exclude)
+            _add_exception_note(typ, val, tb, f"{what} {func.__name__}()", exception_target, exception_exclude)
         return f"<{what} {func.__name__}() failed>"
 
 
@@ -532,8 +533,10 @@ def get_note(exc_value, exception_target):
         original__notes__ = [
             f"Ignored error getting __notes__: {_safe_string(e, '__notes__', repr, exception_target, exc_value)}"
         ]
-    if original__notes__ is not None and not isinstance(
-            original__notes__, list):
+    if original__notes__ is not None and not (isinstance(
+            original__notes__, collections.abc.Sequence) and
+            not isinstance(original__notes__, (str, bytes))
+        ):
         original__notes__ = [
             _safe_string(
                 original__notes__,
