@@ -17,140 +17,133 @@ def traceback_to_tuples(tb):
     return tuple((f.filename, f.lineno, f.name, f.line) for f in extracted)
 
 
-def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None, _seen=threading.local()):
-    def add_to_target(new_value, new_exc, new_tb, ignore_msg="suggestion"):  # type: ignore
-        if isinstance(exception_target, list):
-            tb_tuple = traceback_to_tuples(new_tb)
-            if tb_tuple not in _seen._new_seen:
-                _seen._new_seen.add(tb_tuple)
-                _remove_exception(new_value, exc_value)
-                msg = TracebackException(new_exc, new_value, new_tb).format()
-                while msg.endswith("\n") or msg.endswith(" "):
-                    msg = msg[:-1]
-                exception_target.append(f"\nException ignored in {ignore_msg}:")
-                exception_target.append(msg)
+_ADD_EXC_NOTE_LIMIT = 10
 
-    def handle_special_target(new_tb, special_header, special_tips):  # type: ignore
-        if isinstance(exception_target, list):
-            if "Traceback (most recent call last):" in special_header + "\n" + special_tips:
-                try:
-                    # special handle is not print the exception, so this message shouldn't be contained
-                    raise ValueError(
-                        f"special handle message shouldn't contain 'Traceback (most recent call last):'")
-                except:
-                    new_exc, new_value, new_tb = sys.exc_info()
-                    add_to_target(new_exc, new_value, new_tb, "handle_special_target")
-                    return
-            frames = [
-                fs for fs in traceback.extract_tb(new_tb)
-                if "idlelib" not in fs.filename and "friendly_module_not_found_error" not in fs.filename
-            ]
-            tb_msg = "".join(traceback.format_list(frames))
-            while tb_msg.endswith("\n") or tb_msg.endswith(" "):
-                tb_msg = tb_msg[:-1]
-            exception_target.append(f"\n{special_header}")
-            exception_target.append(tb_msg)
-            exception_target.append(special_tips)
 
+def _add_exception_note(exc_type, exc_value, exc_tb, where,
+        exception_target, exception_exclude=None, _seen=threading.local()):
     if not hasattr(_seen, "_seen"):
         _seen._seen = set()
     if not hasattr(_seen, "times"):
         _seen.times = 0
-    if not hasattr(_seen, "_new_seen"):
-        _seen._new_seen = set()
+    if not isinstance(exception_target, list):
+        return
+    _seen.times += 1
+    tb_tuple = traceback_to_tuples(exc_tb)
+    if tb_tuple not in _seen._seen and _seen.times <= _ADD_EXC_NOTE_LIMIT:
+        _seen._seen.add(tb_tuple)
+        if exception_exclude:
+            _remove_exception(exc_value, exception_exclude)
+        msg = "".join(TracebackException(exc_type, exc_value, exc_tb).format())
+        while msg.endswith("\n") or msg.endswith(" "):
+            msg = msg[:-1]
+        exception_target.append(
+            f"\nException ignored in {where}:"
+        )
+        exception_target.append(msg)
+    _seen.times -= 1
+    if _seen.times <= 0:
+        _seen.times = 0
+        _seen._seen.clear()
+
+
+def _handle_special(exc_tb, head_message, tail_message, exception_target):
+    assert "Traceback (most recent call last):" not in head_message + "\n" + tail_message
+    frames = [
+        fs for fs in traceback.extract_tb(exc_tb)
+        if "idlelib" not in fs.filename and "friendly_module_not_found_error" not in fs.filename
+    ]
+    tb_msg = "".join(traceback.format_list(frames))
+    while tb_msg.endswith("\n") or tb_msg.endswith(" "):
+        tb_msg = tb_msg[:-1]
+    exception_target.append("\n" + head_message)
+    exception_target.append(tb_msg)
+    exception_target.append(tail_message)    
+
+
+def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
     if wrong_name is None or not isinstance(wrong_name, str):
         return None
-    if tb:
-        tb_tuple = traceback_to_tuples(tb)
-        if tb_tuple in _seen._seen:
-            return None
-        _seen._seen.add(tb_tuple)
-    _seen.times += 1
-    try:
-        if isinstance(exc_value, AttributeError):
-            obj = exc_value.obj
+    if isinstance(exc_value, AttributeError):
+        obj = exc_value.obj
+        try:
             try:
-                try:
-                    d = dir(obj)
-                except TypeError:  # Attributes are unsortable, e.g. int and str
+                d = dir(obj)
+            except TypeError:  # Attributes are unsortable, e.g. int and str
+                if not isinstance(obj, type):
+                    try:
+                        d = obj.__dir__()
+                    except:
+                        d = list(obj.__class__.__dict__.keys()) + list(obj.__dict__.keys())
+                else:
                     d = list(obj.__class__.__dict__.keys()) + list(obj.__dict__.keys())
-                d = sorted([x for x in d if isinstance(x, str)])
-                hide_underscored = (wrong_name[:1] != '_')
-                if hide_underscored and tb is not None:
-                    while tb.tb_next is not None:
-                        tb = tb.tb_next
-                    frame = tb.tb_frame
-                    if 'self' in frame.f_locals and frame.f_locals['self'] is obj:
-                        hide_underscored = False
-                if hide_underscored:
-                    d = [x for x in d if x[:1] != '_']
-            except Exception:
-                return None
-        elif isinstance(exc_value, ImportError):
+            d = sorted([x for x in d if isinstance(x, str)])
+            hide_underscored = (wrong_name[:1] != '_')
+            if hide_underscored and tb is not None:
+                while tb.tb_next is not None:
+                    tb = tb.tb_next
+                frame = tb.tb_frame
+                if 'self' in frame.f_locals and frame.f_locals['self'] is obj:
+                    hide_underscored = False
+            if hide_underscored:
+                d = [x for x in d if x[:1] != '_']
+        except Exception:
+            return None
+    elif isinstance(exc_value, ImportError):
+        try:
+            if isinstance(exc_value, ModuleNotFoundError):
+                return _handle_module(exc_value, exception_target)
+            mod = __import__(exc_value.name)
             try:
-                if isinstance(exc_value, ModuleNotFoundError):
-                    return _handle_module(exc_value, exception_target)
-                mod = __import__(exc_value.name)
-                try:
-                    d = dir(mod)
-                except TypeError:  # Attributes are unsortable, e.g. int and str
-                    d = list(mod.__dict__.keys())
-                d = sorted([x for x in d if isinstance(x, str)])
-                if wrong_name[:1] != '_':
-                    d = [x for x in d if x[:1] != '_']
-            except Exception:
-                return None
-        else:
-            assert isinstance(exc_value, NameError)
-            # find most recent frame
-            if tb is None:
-                return None
-            while tb.tb_next is not None:
-                tb = tb.tb_next
-            frame = tb.tb_frame
-            d = (
-                    list(frame.f_locals)
-                    + list(frame.f_globals)
-                    + list(frame.f_builtins)
-            )
-            d = [x for x in d if isinstance(x, str)]
+                d = dir(mod)
+            except TypeError:  # Attributes are unsortable, e.g. int and str
+                d = list(mod.__dict__.keys())
+            d = sorted([x for x in d if isinstance(x, str)])
+            if wrong_name[:1] != '_':
+                d = [x for x in d if x[:1] != '_']
+        except Exception:
+            return None
+    else:
+        assert isinstance(exc_value, NameError)
+        # find most recent frame
+        if tb is None:
+            return None
+        while tb.tb_next is not None:
+            tb = tb.tb_next
+        frame = tb.tb_frame
+        d = (
+                list(frame.f_locals)
+                + list(frame.f_globals)
+                + list(frame.f_builtins)
+        )
+        d = [x for x in d if isinstance(x, str)]
 
-            # Check first if we are in a method and the instance
-            # has the wrong name as attribute
-            if 'self' in frame.f_locals:
-                self = frame.f_locals['self']
-                try:
-                    has_wrong_name = hasattr(self, wrong_name)
-                except Exception:
-                    has_wrong_name = False
-                if has_wrong_name:
-                    return f"self.{wrong_name}"
-
-        suggestion = _calculate_closed_name(wrong_name, d)
-        if minor >= 15:
+        # Check first if we are in a method and the instance
+        # has the wrong name as attribute
+        if 'self' in frame.f_locals:
+            self = frame.f_locals['self']
             try:
-                # If no direct attribute match found, check for nested attributes
-                from contextlib import suppress
-                from traceback import _check_for_nested_attribute
-                if not suggestion and isinstance(exc_value, AttributeError):
-                    with suppress(Exception):
-                        nested_suggestion = _check_for_nested_attribute(exc_value.obj, wrong_name, d)
-                        if nested_suggestion:
-                            return nested_suggestion
-            except:
+                has_wrong_name = hasattr(self, wrong_name)
+            except Exception:
+                has_wrong_name = False
+            if has_wrong_name:
+                return f"self.{wrong_name}"
+
+    suggestion = _calculate_closed_name(wrong_name, d)
+    if minor >= 15:
+        try:
+            # If no direct attribute match found, check for nested attributes
+            from contextlib import suppress
+            from traceback import _check_for_nested_attribute
+            if not suggestion and isinstance(exc_value, AttributeError):
+                with suppress(Exception):
+                    nested_suggestion = _check_for_nested_attribute(exc_value.obj, wrong_name, d)
+                    if nested_suggestion:
+                        return nested_suggestion
+        except:
                 pass
 
-        return suggestion
-    except:
-        if isinstance(exception_target, list):
-            new_exc, new_value, new_tb = sys.exc_info()
-            add_to_target(new_exc, new_value, new_tb)
-    finally:
-        _seen.times -= 1
-        if _seen.times <= 0:
-            _seen.times = 0
-            _seen._seen.clear()
-            _seen._new_seen.clear()
+    return suggestion
 
 
 try:
@@ -248,29 +241,14 @@ def _suggestion_for_module(name, mod="normal", exception_target=None, original_e
         except:
             if isinstance(exception_target, list):
                 new_type, new_value, new_tb = sys.exc_info()
-                if original_exc_value:
-                    _remove_exception(new_value,
-                                      original_exc_value)  # avoid to analyse the original ModuleNotFoundError
+                _remove_exception(new_value, original_exc_value)
                 import_error_set = _import_error_set(new_value)
                 if import_error_set:
-                    frames = [
-                        fs for fs in traceback.extract_tb(new_tb)
-                        if "idlelib" not in fs.filename and "friendly_module_not_found_error" not in fs.filename
-                    ]
-                    tb_msg = "".join(traceback.format_list(frames))
-                    while tb_msg.endswith("\n") or tb_msg.endswith(" "):
-                        tb_msg = tb_msg[:-1]
-                    exception_target.append(f"\nImportError found in '{iname}.__find__' module {imodule}")
-                    exception_target.append(tb_msg)
-                    exception_target.append("Don't import any modules in the method '__find__'")
+                    _handle_special(new_tb, f"ImportError found in '{iname}.__find__' module {imodule}",
+                                    "Don't import any modules in the method '__find__'", exception_target)
                     continue
-                tb_exception = traceback.TracebackException(new_type, new_value, new_tb)
-                msg = "".join(tb_exception.format())
-                while msg.endswith("\n") or msg.endswith(" "):
-                    msg = msg[:-1]
-                exception_target.append(f"\nException ignored in '{iname}.__find__' module {imodule!r}:\n"
-                                        + msg)
-
+                _add_exception_note(new_type, new_value, new_tb, f"'{iname}.__find__' module {imodule!r}",
+                                    exception_target, original_exc_value)
     if PathFinder in sys.meta_path:
         if not parent:
             for paths in sys.path:
@@ -438,35 +416,14 @@ except:
 
 def _safe_string(value, what, func=str,
                  exception_target=None, exception_exclude=None,
-                 _seen=threading.local()):
-    if not hasattr(_seen, "_seen"):
-        _seen._seen = set()
-    if not hasattr(_seen, "times"):
-        _seen.times = 0
+                 ):
     try:
-        _seen.times += 1
         return func(value)
     except:
         if isinstance(exception_target, list):
             typ, val, tb = sys.exc_info()
-            tb_tuple = traceback_to_tuples(tb)
-            if tb_tuple not in _seen._seen:
-                _seen._seen.add(tb_tuple)
-                if exception_exclude:
-                    _remove_exception(val, exception_exclude)
-                msg = "".join(TracebackException(typ, val, tb).format())
-                while msg.endswith("\n") or msg.endswith(" "):
-                    msg = msg[:-1]
-                exception_target.append(
-                    f"\nException ignored in {what} {func.__name__}():"
-                )
-                exception_target.append(msg)
+            _add_exception_note(typ, val, tb, f"{what} {func.__name__}", exception_target, exception_exclude)
         return f"<{what} {func.__name__}() failed>"
-    finally:
-        _seen.times -= 1
-        if _seen.times <= 0:
-            _seen.times = 0
-            _seen._seen.clear()
 
 
 TracebackException = traceback.TracebackException
