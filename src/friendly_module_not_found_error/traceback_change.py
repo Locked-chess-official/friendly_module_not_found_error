@@ -5,6 +5,7 @@ import itertools
 import _frozen_importlib_external  # type: ignore
 import threading
 import collections.abc
+import types
 
 PathFinder = _frozen_importlib_external.PathFinder
 
@@ -50,6 +51,8 @@ def _add_exception_note(exc_type, exc_value, exc_tb, where,
 
 def _handle_special(exc_tb, head_message, tail_message, exception_target):
     assert "Traceback (most recent call last):" not in head_message + "\n" + tail_message
+    if not isinstance(exception_target, list):
+        return
     frames = [
         fs for fs in traceback.extract_tb(exc_tb)
         if "idlelib" not in fs.filename and "friendly_module_not_found_error" not in fs.filename
@@ -70,15 +73,40 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
         try:
             try:
                 d = dir(obj)
-            except TypeError:  # Attributes are unsortable, e.g. int and str
-                if not isinstance(obj, type):
-                    try:
-                        d = obj.__dir__()
-                    except:
-                        d = list(obj.__class__.__dict__.keys()) + list(obj.__dict__.keys())
+            except BaseException as e:  # Attributes are unsortable, e.g. int and str
+                try:
+                    d = obj.__dir__() if not isinstance(obj, type) else type(obj).__dir__(obj)
+                except:
+                    new_type, new_value, new_tb = sys.exc_info()
+                    _add_exception_note(new_type, new_value, new_tb, "calling obj.__dir__",
+                                        exception_target, e)
+                    d = list(obj.__class__.__dict__.keys())
+                    if isinstance(getattr(obj, "__dict__", None), (dict, types.MappingProxyType)):
+                        d += list(obj.__dict__.keys())
+                    if isinstance(getattr(obj, "__slots__", None), collections.abc.Sequence) \
+                        and not isinstance(getattr(obj, "__slots__", None), (str, bytes)):
+                        d += list(obj.__slots__)
                 else:
-                    d = list(obj.__class__.__dict__.keys()) + list(obj.__dict__.keys())
-            d = sorted([x for x in d if isinstance(x, str)])
+                    if isinstance(exception_target, list):
+                        exception_target.append(
+                            f"\nWrong value returnd from '{type(obj).__name__}.__dir__'")
+                        exception_target.append(
+                            "Please ensure that what is returned is sequence of strings")
+                    if isinstance(obj, type):
+                        d += list(obj.__class__.__dict__.keys())
+                        if isinstance(getattr(obj, "__dict__", None), types.MappingProxyType):
+                            d += list(obj.__dict__.keys())
+                        if isinstance(getattr(obj, "__slots__", None), collections.abc.Sequence) \
+                            and not isinstance(getattr(obj, "__slots__", None), (str, bytes)):
+                            d += list(obj.__slots__)
+            if not isinstance(d, collections.abc.Sequence) or isinstance(d, (str, bytes)):
+                return None
+            d = sorted(set(x for x in d if isinstance(x, str)))
+            if wrong_name in d:
+                if isinstance(exception_target, list):
+                    exception_target.append(f"\n{wrong_name} found in the list of attribute of the obj but cannot get. Please"
+                                            f" check the code in the class {type(obj).__name__}")
+                return None # the code of the object is wrong. Don't give the wrong suggestion from the wrong code
             hide_underscored = (wrong_name[:1] != '_')
             if hide_underscored and tb is not None:
                 while tb.tb_next is not None:
@@ -89,20 +117,57 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
             if hide_underscored:
                 d = [x for x in d if x[:1] != '_']
         except Exception:
+            new_type, new_value, new_tb = sys.exc_info()
+            _add_exception_note(new_type, new_value, new_tb, "finding attribute in object",
+                                exception_target, evc_value)
             return None
     elif isinstance(exc_value, ImportError):
-        try:
-            if isinstance(exc_value, ModuleNotFoundError):
-                return _handle_module(exc_value, exception_target)
+        if isinstance(exc_value, ModuleNotFoundError):
+            return _handle_module(exc_value, exception_target)
+        try:            
             mod = __import__(exc_value.name)
             try:
                 d = dir(mod)
-            except TypeError:  # Attributes are unsortable, e.g. int and str
-                d = list(mod.__dict__.keys())
-            d = sorted([x for x in d if isinstance(x, str)])
+            except Exception as e:  # Attributes are unsortable, e.g. int and str
+                try:
+                    d = mod.__dir__() if not isinstance(mod, type) else type(mod).__dir__(obj)
+                except:
+                    new_type, new_value, new_tb = sys.exc_info()
+                    _add_exception_note(new_type, new_value, new_tb, "calling obj.__dir__",
+                                        exception_target, e)
+                    d = list(mod.__class__.__dict__.keys())
+                    if isinstance(getattr(obj, "__dict__", None), dict):
+                        d += list(mod.__dict__.keys())
+                    if isinstance(getattr(obj, "__slots__", None), collections.abc.Sequence) \
+                        and not isinstance(getattr(obj, "__slots__", None), (str, bytes)):
+                        d += list(mod.__slots__)
+                else:
+                    if isinstance(exception_target, list):
+                        exception_target.append(
+                            f"\nWrong value returnd from '{exc_value.name}.__dir__'")
+                        exception_target.append(
+                            "Please ensure that what is returned is sequence of strings")
+                    if isinstance(mod, type):
+                        d += list(mod.__class__.__dict__.keys())
+                        if isinstance(getattr(mod, "__dict__", None), types.MappingProxyType):
+                            d += list(mod.__dict__.keys())
+                        if isinstance(getattr(mod, "__slots__", None), collections.abc.Sequence) \
+                            and not isinstance(getattr(mod, "__slots__", None), (str, bytes)):
+                            d += list(mod.__slots__)
+            if not isinstance(d, collections.abc.Sequence) or isinstance(d, (str, bytes)):
+                return None
+            d = sorted(set(x for x in d if isinstance(x, str)))
+            if wrong_name in d:
+                if isinstance(exception_target, list):
+                    exception_target.append(f"\n{wrong_name} found in the list of attribute of the module but cannot be imported."
+                                            f" Please check the code in the module {exc_value.name}")
+                return None
             if wrong_name[:1] != '_':
                 d = [x for x in d if x[:1] != '_']
         except Exception:
+            new_type, new_value, new_tb = sys.exc_info()
+            _add_exception_note(new_type, new_value, new_tb, f"finding attribute in module {exc_value.name}",
+                                exception_target, exc_value)
             return None
     else:
         assert isinstance(exc_value, NameError)
@@ -145,6 +210,9 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
                 pass
 
     return suggestion
+
+
+traceback._compute_suggestion_error = _compute_suggestion_error
 
 
 try:

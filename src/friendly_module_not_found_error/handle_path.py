@@ -68,6 +68,8 @@ def find_in_path(name, mod="normal"):
 
     name_list = name.split(".")
     for i in sys.path:
+        if i == "":
+            i = "."
         list_d = scan_dir(i)
         if name_list[0] in list_d:
             break
