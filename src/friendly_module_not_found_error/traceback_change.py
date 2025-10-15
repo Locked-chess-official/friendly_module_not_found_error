@@ -62,7 +62,7 @@ def _handle_special(exc_tb, head_message, tail_message, exception_target):
         tb_msg = tb_msg[:-1]
     exception_target.append("\n" + head_message)
     exception_target.append(tb_msg)
-    exception_target.append(tail_message)    
+    exception_target.append(tail_message)
 
 
 def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
@@ -104,8 +104,8 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
             d = sorted(set(x for x in d if isinstance(x, str)))
             if wrong_name in d:
                 if isinstance(exception_target, list):
-                    exception_target.append(f"\n{wrong_name} found in the list of attribute of the obj but cannot get. Please"
-                                            f" check the code in the class {type(obj).__name__}")
+                    exception_target.append(f"\n{wrong_name!r} found in the list of attribute of the obj but cannot get. Please"
+                                            f" check the code in the class {type(obj).__name__!r}")
                 return None # the code of the object is wrong. Don't give the wrong suggestion from the wrong code
             hide_underscored = (wrong_name[:1] != '_')
             if hide_underscored and tb is not None:
@@ -119,7 +119,7 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
         except Exception:
             new_type, new_value, new_tb = sys.exc_info()
             _add_exception_note(new_type, new_value, new_tb, "finding attribute in object",
-                                exception_target, evc_value)
+                                exception_target, exc_value)
             return None
     elif isinstance(exc_value, ImportError):
         if isinstance(exc_value, ModuleNotFoundError):
@@ -599,7 +599,7 @@ def get_note(exc_value, exception_target):
         original__notes__ = getattr(exc_value, "__notes__", None)
     except Exception as e:
         original__notes__ = [
-            f"Ignored error getting __notes__: {_safe_string(e, '__notes__', repr, exception_target, exc_value)}"
+            f"Ignored error getting __notes__: {_safe_string(e, '__notes__', repr, exception_target, e)}"
         ]
     if original__notes__ is not None and not (isinstance(
             original__notes__, collections.abc.Sequence) and
