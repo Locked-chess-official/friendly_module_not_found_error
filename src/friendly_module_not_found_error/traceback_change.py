@@ -85,7 +85,9 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
                         d += list(obj.__dict__.keys())
                     if isinstance(getattr(obj, "__slots__", None), collections.abc.Sequence) \
                         and not isinstance(getattr(obj, "__slots__", None), (str, bytes)):
-                        d += list(obj.__slots__)
+                        for i in obj.__slots__:
+                            if hasattr(obj, i):
+                                d.append(i)
                 else:
                     if isinstance(exception_target, list):
                         exception_target.append(
@@ -98,7 +100,9 @@ def _compute_suggestion_error(exc_value, tb, wrong_name, exception_target=None):
                             d += list(obj.__dict__.keys())
                         if isinstance(getattr(obj, "__slots__", None), collections.abc.Sequence) \
                             and not isinstance(getattr(obj, "__slots__", None), (str, bytes)):
-                            d += list(obj.__slots__)
+                            for i in obj.__slots__:
+                                if isinstance(i, str) and hasattr(obj, i):
+                                    d.append(i)
             if not isinstance(d, collections.abc.Sequence) or isinstance(d, (str, bytes)):
                 return None
             d = sorted(set(x for x in d if isinstance(x, str)))
@@ -264,11 +268,29 @@ def _remove_exception(exc_value, other_exc_value, _seen=None):
     if isinstance(BaseException.__getattribute__(exc_value, "__cause__"), BaseException):
         if BaseException.__getattribute__(exc_value, "__cause__") is other_exc_value:
             BaseException.__setattr__(exc_value, "__cause__", None)
+        elif minor >= 11 and isinstance(BaseException.__getattribute__(exc_value, "__cause__"), BaseExceptionGroup):
+            if other_exc_value in BaseExceptionGroup.__getattribute__(
+                    BaseException.__getattribute__(exc_value, "__cause__"), "exceptions"):
+                BaseException.__setattr__(exc_value, "__cause__", None)
+            else:
+                _remove_exception(BaseException.__getattribute__(exc_value, "__cause__"), other_exc_value, _seen)
+                for i in BaseExceptionGroup.__getattribute__(
+                        BaseException.__getattribute__(exc_value, "__cause__"), "exceptions"):
+                    _remove_exception(i, other_exc_value, _seen)
         else:
             _remove_exception(BaseException.__getattribute__(exc_value, "__cause__"), other_exc_value, _seen)
     if isinstance(BaseException.__getattribute__(exc_value, "__context__"), BaseException):
         if exc_value.__context__ is other_exc_value:
             BaseException.__setattr__(exc_value, "__context__", None)
+        elif minor >= 11 and isinstance(BaseException.__getattribute__(exc_value, "__context__"), BaseExceptionGroup):
+            if other_exc_value in BaseExceptionGroup.__getattribute__(
+                    BaseException.__getattribute__(exc_value, "__context__"), "exceptions"):
+                BaseException.__setattr__(exc_value, "__context__", None)
+            else:
+                _remove_exception(BaseException.__getattribute__(exc_value, "__context__"), other_exc_value, _seen)
+                for i in BaseExceptionGroup.__getattribute__(
+                        BaseException.__getattribute__(exc_value, "__context__"), "exceptions"):
+                    _remove_exception(i, other_exc_value, _seen)
         else:
             _remove_exception(BaseException.__getattribute__(exc_value, "__context__"), other_exc_value, _seen)
             
@@ -300,7 +322,7 @@ def _suggestion_for_module(name, mod="normal", exception_target=None, original_e
                 if child in list_d:
                     if isinstance(exception_target, list):
                         exception_target.append(
-                            f"The child name found in '{iname}.__find__' "
+                            f"\nThe child name found in '{iname}.__find__' "
                             "but it cannot imported by it. "
                             "Please check it. \n"
                             f"{iname!r} is in module {imodule!r}")
@@ -502,7 +524,8 @@ def handle_except(self, exc_type, exc_value, exc_traceback, exception_target):
     if exc_type and issubclass(exc_type, ModuleNotFoundError) and \
             getattr(exc_value, "name", None) and \
             "None in sys.modules" not in self._str and \
-            "is not a package" not in self._str:
+            "is not a package" not in self._str and \
+            "__path__ attribute not found on " not in self._str:
         wrong_name = getattr(exc_value, "name", None)
         parent, _, child = wrong_name.rpartition('.')
         suggestion = _compute_suggestion_error(exc_value, exc_traceback, wrong_name, exception_target)
